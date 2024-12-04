@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import {
   Box,
   Container,
@@ -17,11 +19,10 @@ import {
 } from '@mui/material';
 import { Google } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { auth } from '../services/firebase';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { googleSignIn, updateUserProfile } = useAuth();
+  const { googleSignIn, currentUser } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -34,7 +35,9 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
+      console.log('Attempting Google sign in...');
       const result = await googleSignIn();
+      console.log('Sign in result:', result);
       
       if (result.isNewUser) {
         setShowOnboarding(true);
@@ -42,8 +45,10 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError('Failed to sign in with Google');
-      console.error(err);
+      console.error('Login error:', err);
+      setError(err.code === 'auth/popup-closed-by-user' 
+        ? 'Sign in was cancelled' 
+        : 'Failed to sign in. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -58,11 +63,19 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
-      await updateUserProfile(auth.currentUser.uid, onboardingData);
+
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        year: onboardingData.year,
+        branch: onboardingData.branch,
+        updatedAt: new Date()
+      });
+
+      console.log('Profile updated successfully');
       navigate('/dashboard');
     } catch (err) {
-      setError('Failed to update profile');
-      console.error(err);
+      console.error("Onboarding error:", err);
+      setError('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -120,8 +133,12 @@ const Login = () => {
         </motion.div>
       </Box>
 
-      {/* Onboarding Dialog */}
-      <Dialog open={showOnboarding} onClose={() => {}} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={showOnboarding} 
+        onClose={() => {}} 
+        maxWidth="sm" 
+        fullWidth
+      >
         <DialogTitle>Complete Your Profile</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>

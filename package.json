@@ -3,16 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@date-io/date-fns": "^2.16.0",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.6",
     "@mui/lab": "^5.0.0-alpha.162",
     "@mui/material": "^5.15.6",
     "@mui/styles": "^5.15.6",
-    "@mui/x-date-pickers": "^5.0.15",
-    "date-fns": "^2.29.3",
-    "file-saver": "^2.0.5",
     "firebase": "^10.7.2",
     "framer-motion": "^11.0.3",
     "prop-types": "^15.8.1",
@@ -20,9 +16,7 @@
     "react-dom": "^18.2.0",
     "react-player": "^2.14.1",
     "react-router-dom": "^6.21.3",
-    "react-scripts": "5.0.1",
-    "recharts": "^2.10.4",
-    "xlsx": "^0.18.5"
+    "react-scripts": "5.0.1"
   },
   "devDependencies": {
     "eslint": "^8.56.0",

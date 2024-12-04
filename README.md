@@ -1,70 +1,55 @@
-# Getting Started with Create React App
+# Progresso - Interactive Learning Platform
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A learning platform designed for students to learn programming through video courses and project submissions. Built with React and Firebase, focusing on simplicity and essential progress tracking.
 
-## Available Scripts
+## Core Features
 
-In the project directory, you can run:
+- **Google Authentication**: Secure sign-in using Google accounts
+- **Video Courses**: Watch programming tutorials with progress tracking
+- **Project Submissions**: Submit projects via GitHub links
+- **Progress Tracking**: Track completed videos and projects
+- **Quiz Links**: Access external quiz platforms
+- **Admin Dashboard**: Manage courses and review project submissions
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Frontend**: React.js with Material-UI
+- **Backend**: Firebase (Authentication, Firestore)
+- **State Management**: React Context API
+- **Routing**: React Router v6
+- **Video Player**: React Player
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Progress Tracking System
 
-### `npm test`
+### For Students
+- Track completed videos (marked when 90% watched)
+- Submit and track project submissions
+- View personal progress on dashboard
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### For Admins
+- Review project submissions
+- Track student progress
+- Manage course content
 
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Project Structure
+```
+progresso/
+├── src/
+│ ├── components/ # Core UI components
+│ │ ├── CourseCard.js # Course display
+│ │ ├── Header.js # Navigation header
+│ │ ├── ProgressCard.js # Progress display
+│ │ ├── VideoPlayer.js # Video playback
+│ │ └── ProjectSubmission.js # Project submission
+│ ├── contexts/
+│ │ └── AuthContext.js # Authentication state
+│ ├── hooks/
+│ │ └── useFirebase.js # Firebase operations
+│ ├── pages/ # Main pages
+│ │ ├── Dashboard.js # User dashboard
+│ │ ├── CoursePage.js # Course view
+│ │ └── AdminDashboard.js # Admin panel
+│ └── services/
+│ └── firebase.js # Firebase config
+└── firestore.rules # Security rules
+```

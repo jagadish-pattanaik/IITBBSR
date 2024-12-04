@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirebase } from '../hooks/useFirebase';
@@ -25,43 +25,84 @@ import CourseCard from '../components/CourseCard';
 import { motion } from 'framer-motion';
 import { staggerContainer, fadeInUp } from '../utils/animations';
 import AnimatedPage from '../components/AnimatedPage';
-import RecentActivity from '../components/RecentActivity';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { getCourses, loading, error } = useFirebase();
+  const { getCourses } = useFirebase();
   const [courses, setCourses] = useState([]);
   const [userProgress, setUserProgress] = useState({
     videosWatched: 0,
-    projectsSubmitted: 0,
-    quizzesTaken: 0
+    projectsSubmitted: 0
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Memoize fetchData to prevent infinite loops
+  const fetchData = useCallback(async () => {
+    if (!currentUser?.uid) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get user progress - one-time read
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+      
+      if (userData) {
+        setUserProgress({
+          videosWatched: userData.progress?.videosWatched || 0,
+          projectsSubmitted: userData.progress?.projectsSubmitted || 0
+        });
+      }
+
+      // Get courses - one-time read
+      const coursesData = await getCourses();
+      setCourses(coursesData);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.uid, getCourses]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const coursesData = await getCourses();
-        setCourses(coursesData);
-        
-        // In a real app, fetch user progress from Firebase
-        setUserProgress({
-          videosWatched: 12,
-          projectsSubmitted: 3,
-          quizzesTaken: 5
-        });
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-      }
-    };
-
     fetchData();
-  }, [getCourses]);
+  }, [fetchData]);
 
+  // Add loading state to prevent flickering
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <Box 
+        sx={{ 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          bgcolor: 'background.default'
+        }}
+      >
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography color="error">{error}</Typography>
+        <Button onClick={() => window.location.reload()} sx={{ mt: 2 }}>
+          Retry
+        </Button>
       </Box>
     );
   }
@@ -159,18 +200,6 @@ const Dashboard = () => {
                   </Grid>
                 ))}
               </Grid>
-            </Box>
-          </motion.div>
-
-          {/* Recent Activity Section */}
-          <motion.div variants={fadeInUp}>
-            <Box sx={{ mb: 6 }}>
-              <Typography variant="h5" gutterBottom>
-                Recent Activity
-              </Typography>
-              <Paper sx={{ p: 2 }}>
-                <RecentActivity userId={currentUser.uid} />
-              </Paper>
             </Box>
           </motion.div>
         </Container>

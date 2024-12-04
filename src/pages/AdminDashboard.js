@@ -12,13 +12,11 @@ import {
 } from '@mui/material';
 import {
   People,
-  Assignment,
-  Assessment
+  Assignment
 } from '@mui/icons-material';
 import Header from '../components/Header';
 import UserList from '../components/UserList';
 import ProjectReview from '../components/ProjectReview';
-import Analytics from '../components/Analytics';
 import UserDetailsModal from '../components/UserDetailsModal';
 import { motion } from 'framer-motion';
 
@@ -28,15 +26,6 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [analyticsData, setAnalyticsData] = useState({
-    totalUsers: 0,
-    activeCourses: 0,
-    totalSubmissions: 0,
-    completionRate: 0,
-    approvedSubmissions: 0,
-    rejectedSubmissions: 0,
-    pendingSubmissions: 0
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,16 +36,6 @@ const AdminDashboard = () => {
         ]);
         setUsers(usersData);
         setSubmissions(submissionsData);
-
-        setAnalyticsData({
-          totalUsers: usersData.length,
-          activeCourses: 4,
-          totalSubmissions: submissionsData.length,
-          completionRate: 75,
-          approvedSubmissions: submissionsData.filter(s => s.status === 'approved').length,
-          rejectedSubmissions: submissionsData.filter(s => s.status === 'rejected').length,
-          pendingSubmissions: submissionsData.filter(s => s.status === 'pending').length
-        });
       } catch (err) {
         console.error('Error fetching admin data:', err);
       }
@@ -120,7 +99,6 @@ const AdminDashboard = () => {
           >
             <Tab icon={<People />} label="Users" />
             <Tab icon={<Assignment />} label="Project Reviews" />
-            <Tab icon={<Assessment />} label="Analytics" />
           </Tabs>
         </Paper>
 
@@ -145,16 +123,6 @@ const AdminDashboard = () => {
                 submissions={submissions}
                 onReview={handleProjectReview}
               />
-            </motion.div>
-          )}
-          
-          {activeTab === 2 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Analytics data={analyticsData} />
             </motion.div>
           )}
         </Box>

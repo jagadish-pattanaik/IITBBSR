@@ -1,7 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -15,33 +14,20 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // User profiles
+    // Users collection - no real-time updates needed
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId);
+      allow read, create: if isAuthenticated();
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
-      
-      // User progress subcollection
-      match /progress/{progressId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow write: if isOwner(userId) || isAdmin();
-      }
     }
-    
-    // Courses
+
+    // Courses collection - static data, no real-time updates
     match /courses/{courseId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
-      
-      // Course videos subcollection
-      match /videos/{videoId} {
-        allow read: if isAuthenticated();
-        allow write: if isAdmin();
-      }
     }
-    
-    // Projects
+
+    // Project submissions - only admin needs real-time
     match /submissions/{submissionId} {
       allow read: if isAuthenticated() &&
         (request.auth.uid == resource.data.userId || isAdmin());
@@ -49,23 +35,14 @@ service cloud.firestore {
         request.auth.uid == request.resource.data.userId;
       allow update: if isAdmin();
     }
-    
-    // Quizzes
+
+    // Quizzes - static data, no real-time updates
     match /quizzes/{quizId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
-      
-      // Quiz attempts subcollection
-      match /attempts/{attemptId} {
-        allow read: if isAuthenticated() &&
-          (request.auth.uid == resource.data.userId || isAdmin());
-        allow create: if isAuthenticated() &&
-          request.auth.uid == request.resource.data.userId;
-        allow update: if isAdmin();
-      }
     }
-    
-    // Admin list
+
+    // Admins collection - static data
     match /admins/{adminId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();

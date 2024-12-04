@@ -17,8 +17,6 @@ import QuizSection from './pages/QuizSection';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
-import { initializePresence } from './services/presence';
-import { NotificationProvider } from './contexts/NotificationContext';
 
 function App() {
   const location = useLocation();
@@ -67,46 +65,44 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
-          <NotificationProvider>
-            <AnimatePresence mode="wait">
-              <Routes location={location} key={location.pathname}>
-                <Route path="/" element={<Home toggleColorMode={toggleColorMode} />} />
-                <Route path="/login" element={<Login />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/course/:courseId"
-                  element={
-                    <ProtectedRoute>
-                      <CoursePage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/quizzes"
-                  element={
-                    <ProtectedRoute>
-                      <QuizSection />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </AnimatePresence>
-          </NotificationProvider>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<Home toggleColorMode={toggleColorMode} />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/course/:courseId"
+                element={
+                  <ProtectedRoute>
+                    <CoursePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quizzes"
+                element={
+                  <ProtectedRoute>
+                    <QuizSection />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </AnimatePresence>
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

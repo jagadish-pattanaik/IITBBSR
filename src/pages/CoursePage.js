@@ -15,18 +15,39 @@ import {
   ListItemButton,
   Button,
   CircularProgress,
-  Alert
+  Alert,
+  Chip,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   PlayCircleOutline,
   CheckCircle,
-  Assignment
+  Assignment,
+  GitHub
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import VideoPlayer from '../components/VideoPlayer';
 import ProjectSubmission from '../components/ProjectSubmission';
+import { 
+  getDoc, 
+  doc, 
+  getDocs, 
+  query, 
+  where, 
+  addDoc, 
+  collection,
+  updateDoc, 
+  increment, 
+  serverTimestamp 
+} from 'firebase/firestore';
+import { db } from '../services/firebase';
+import { Link } from 'react-router-dom';
 
 const CoursePage = () => {
   const { courseId } = useParams();
@@ -38,6 +59,8 @@ const CoursePage = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [completedVideos, setCompletedVideos] = useState(new Set());
   const [error, setError] = useState(null);
+  const [projectSubmissions, setProjectSubmissions] = useState({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -56,16 +79,141 @@ const CoursePage = () => {
     fetchCourse();
   }, [courseId, getCourses]);
 
+  useEffect(() => {
+    const fetchUserProgress = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        const userData = userDoc.data();
+        
+        if (userData?.completedVideos) {
+          const completed = new Set(
+            Object.keys(userData.completedVideos)
+              .filter(key => key.startsWith(courseId))
+              .map(key => key.split('_')[1])
+          );
+          setCompletedVideos(completed);
+        }
+      } catch (error) {
+        console.error('Error fetching user progress:', error);
+      }
+    };
+
+    fetchUserProgress();
+  }, [currentUser, courseId]);
+
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      if (!currentUser || !courseId) return;
+      
+      try {
+        const submissionsQuery = query(
+          collection(db, 'submissions'),
+          where('userId', '==', currentUser.uid),
+          where('courseId', '==', courseId)
+        );
+        
+        const snapshot = await getDocs(submissionsQuery);
+        const submissions = {};
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          submissions[data.projectId] = {
+            id: doc.id,
+            ...data
+          };
+        });
+        setProjectSubmissions(submissions);
+      } catch (error) {
+        console.error('Error fetching submissions:', error);
+      }
+    };
+
+    fetchSubmissions();
+  }, [currentUser, courseId]);
+
   const handleVideoProgress = (videoId) => {
     setCompletedVideos(prev => new Set([...prev, videoId]));
   };
 
+  const canSubmitProject = (projectId) => {
+    const submission = projectSubmissions[projectId];
+    // Allow submission if:
+    // 1. No previous submission exists
+    // 2. Previous submission was rejected
+    return !submission || submission.status === 'rejected';
+  };
+
   const handleProjectSubmit = async (githubLink) => {
     try {
-      await submitProject(currentUser.uid, courseId, selectedProject.id, githubLink);
+      setError(null);
+      
+      // Check if submission is allowed
+      if (!canSubmitProject(selectedProject.id)) {
+        setError('Cannot resubmit an approved or pending project');
+        return;
+      }
+
+      const submissionData = {
+        userId: currentUser.uid,
+        courseId,
+        projectId: selectedProject.id,
+        githubLink,
+        status: 'pending',
+        submittedAt: serverTimestamp()
+      };
+
+      // Check if submission already exists
+      const existingSubmission = projectSubmissions[selectedProject.id];
+      if (existingSubmission) {
+        // Update existing submission
+        await updateDoc(doc(db, 'submissions', existingSubmission.id), {
+          githubLink,
+          status: 'pending',
+          submittedAt: serverTimestamp()
+        });
+      } else {
+        // Create new submission
+        await addDoc(collection(db, 'submissions'), submissionData);
+        
+        // Update user's project count only for new submissions
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          'progress.projectsSubmitted': increment(1)
+        });
+      }
+
       setShowProjectDialog(false);
     } catch (err) {
       console.error('Error submitting project:', err);
+      setError('Failed to submit project. Please try again.');
+    }
+  };
+
+  const handleProjectClick = (project) => {
+    const canSubmit = canSubmitProject(project.id);
+    if (!canSubmit) return;
+
+    // If it's a resubmission, show confirmation dialog
+    if (projectSubmissions[project.id]?.status === 'rejected') {
+      setSelectedProject(project);
+      setShowConfirmDialog(true);
+    } else {
+      setSelectedProject(project);
+      setShowProjectDialog(true);
+    }
+  };
+
+  const getProjectStatusMessage = (submission) => {
+    if (!submission) return "Click to submit your project";
+    switch (submission.status) {
+      case 'approved':
+        return "Project has been approved! Great work!";
+      case 'pending':
+        return "Your submission is under review";
+      case 'rejected':
+        return "Project needs improvements. Click to resubmit";
+      default:
+        return "Click to submit your project";
     }
   };
 
@@ -120,7 +268,7 @@ const CoursePage = () => {
                     >
                       <ListItemIcon>
                         {completedVideos.has(video.id) ? (
-                          <CheckCircle color="primary" />
+                          <CheckCircle color="success" />
                         ) : (
                           <PlayCircleOutline />
                         )}
@@ -138,26 +286,68 @@ const CoursePage = () => {
                 Projects
               </Typography>
               
-              {course.projects?.map((project) => (
-                <motion.div
-                  key={project.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<Assignment />}
-                    sx={{ mb: 2 }}
-                    onClick={() => {
-                      setSelectedProject(project);
-                      setShowProjectDialog(true);
-                    }}
-                  >
-                    {project.title}
-                  </Button>
-                </motion.div>
-              ))}
+              {course.projects?.map((project) => {
+                const submission = projectSubmissions[project.id];
+                const canSubmit = canSubmitProject(project.id);
+                
+                return (
+                  <motion.div key={project.id}>
+                    <Box sx={{ mb: 2 }}>
+                      <Tooltip 
+                        title={getProjectStatusMessage(submission)}
+                        placement="top"
+                      >
+                        <span> {/* Wrapper needed for disabled buttons */}
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            startIcon={<Assignment />}
+                            onClick={() => handleProjectClick(project)}
+                            disabled={!canSubmit && submission?.status === 'approved'}
+                            endIcon={
+                              submission && (
+                                <Chip
+                                  size="small"
+                                  label={submission.status}
+                                  color={
+                                    submission.status === 'approved'
+                                      ? 'success'
+                                      : submission.status === 'rejected'
+                                      ? 'error'
+                                      : 'warning'
+                                  }
+                                />
+                              )
+                            }
+                          >
+                            {project.title}
+                            {submission?.status === 'approved' && ' (Completed)'}
+                            {submission?.status === 'pending' && ' (Under Review)'}
+                            {submission?.status === 'rejected' && ' (Resubmit)'}
+                          </Button>
+                        </span>
+                      </Tooltip>
+                      {submission?.githubLink && (
+                        <Typography
+                          variant="caption"
+                          component="div"
+                          sx={{ mt: 0.5, pl: 1 }}
+                        >
+                          <Link
+                            href={submission.githubLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                          >
+                            <GitHub sx={{ fontSize: 16 }} />
+                            View Submission
+                          </Link>
+                        </Typography>
+                      )}
+                    </Box>
+                  </motion.div>
+                );
+              })}
             </Paper>
           </Grid>
         </Grid>
@@ -170,7 +360,50 @@ const CoursePage = () => {
         loading={loading}
       />
 
-      {error && <Alert severity="error">{error}</Alert>}
+      <Dialog
+        open={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+      >
+        <DialogTitle>Resubmit Project?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            You are about to resubmit this project. Your previous submission will be updated with the new one.
+            Are you sure you want to continue?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConfirmDialog(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              setShowConfirmDialog(false);
+              setShowProjectDialog(true);
+            }}
+          >
+            Yes, Resubmit
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ 
+            position: 'fixed', 
+            bottom: 16, 
+            left: '50%', 
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            boxShadow: 3
+          }}
+          onClose={() => setError(null)}
+        >
+          {error}
+        </Alert>
+      )}
 
       <Footer />
     </Box>

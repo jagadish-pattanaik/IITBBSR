@@ -1,12 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  auth, 
-  db 
-} from '../services/firebase';
+import { auth, db } from '../services/firebase';
 import { 
   signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut 
+  GoogleAuthProvider 
 } from 'firebase/auth';
 import { 
   doc, 
@@ -15,28 +11,26 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const googleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
+  const createUserDocument = async (user) => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // Check if user exists in Firestore
       const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-      
-      if (!userSnap.exists()) {
-        // Create new user document
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
         await setDoc(userRef, {
           email: user.email,
           name: user.displayName,
@@ -47,45 +41,66 @@ export const AuthProvider = ({ children }) => {
           role: 'user',
           progress: {
             videosWatched: 0,
-            projectsSubmitted: 0,
-            quizzesTaken: 0
+            projectsSubmitted: 0
           }
         });
-        return { isNewUser: true, user };
+        return true; // New user
       }
-      return { isNewUser: false, user };
+      return false; // Existing user
     } catch (error) {
+      console.error('Error creating user document:', error);
+      return false;
+    }
+  };
+
+  const googleSignIn = async () => {
+    try {
+      console.log('Starting Google Sign In...');
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      console.log('Sign in successful:', user.email);
+
+      const isNewUser = await createUserDocument(user);
+      return { isNewUser, user };
+    } catch (error) {
+      console.error('Authentication error:', error);
       throw error;
     }
   };
 
-  const logout = () => {
-    return signOut(auth);
-  };
-
-  const updateUserProfile = async (userId, data) => {
+  const logout = async () => {
     try {
-      const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, data, { merge: true });
+      await auth.signOut();
+      console.log('Logged out successfully');
     } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     }
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      setCurrentUser(user);
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        try {
+          await createUserDocument(user);
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+        }
+      } else {
+        setCurrentUser(null);
+      }
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   const value = {
     currentUser,
     googleSignIn,
-    logout,
-    updateUserProfile
+    logout
   };
 
   return (

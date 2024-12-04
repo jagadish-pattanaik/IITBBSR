@@ -17,7 +17,6 @@ import {
 } from '@mui/material';
 import { Visibility, Star } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import PresenceIndicator from './PresenceIndicator';
 
 const UserList = ({ users, onViewUser }) => {
   const [page, setPage] = useState(0);
@@ -43,8 +42,6 @@ const UserList = ({ users, onViewUser }) => {
               <TableCell>Branch</TableCell>
               <TableCell align="center">Videos Watched</TableCell>
               <TableCell align="center">Projects</TableCell>
-              <TableCell align="center">Quizzes</TableCell>
-              <TableCell align="center">Rank</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -60,9 +57,7 @@ const UserList = ({ users, onViewUser }) => {
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <PresenceIndicator userId={user.id}>
-                        <Avatar src={user.photoURL} alt={user.name} sx={{ mr: 2 }} />
-                      </PresenceIndicator>
+                      <Avatar src={user.photoURL} alt={user.name} sx={{ mr: 2 }} />
                       <Box>
                         <Typography variant="subtitle2">{user.name}</Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -86,19 +81,6 @@ const UserList = ({ users, onViewUser }) => {
                       color="secondary"
                       size="small"
                     />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={user.progress.quizzesTaken}
-                      color="success"
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Star sx={{ color: 'gold', mr: 0.5 }} />
-                      <Typography variant="subtitle2">{user.rank}</Typography>
-                    </Box>
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title="View Details">

@@ -2,8 +2,6 @@ import { AppBar, Toolbar, Button, IconButton, Box, useTheme } from '@mui/materia
 import { Brightness4, Brightness7 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import NotificationBell from './NotificationBell';
-import NotificationSound from './NotificationSound';
 
 const Header = ({ toggleColorMode }) => {
   const theme = useTheme();
@@ -21,16 +19,23 @@ const Header = ({ toggleColorMode }) => {
         >
           <Box
             component="img"
-            src="/logo.png"
+            src="/default-logo.png"
             alt="Progresso"
-            sx={{ height: 40, cursor: 'pointer' }}
+            sx={{ 
+              height: 40, 
+              cursor: 'pointer',
+              fallback: {
+                src: '/default-logo.png'
+              }
+            }}
             onClick={() => navigate('/')}
+            onError={(e) => {
+              e.target.src = '/default-logo.png';
+            }}
           />
         </motion.div>
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <NotificationBell />
-          <NotificationSound />
           <AnimatePresence mode="wait">
             <motion.div
               key={theme.palette.mode}

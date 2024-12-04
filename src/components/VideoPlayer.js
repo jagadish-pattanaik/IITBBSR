@@ -2,22 +2,31 @@ import { useState, useCallback } from 'react';
 import { Box, LinearProgress, Typography } from '@mui/material';
 import ReactPlayer from 'react-player';
 import { useAuth } from '../contexts/AuthContext';
-import { useFirebase } from '../hooks/useFirebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
-const VideoPlayer = ({ videoUrl, courseId, videoId, onProgress }) => {
+const VideoPlayer = ({ videoUrl, courseId, videoId }) => {
   const { currentUser } = useAuth();
-  const { updateVideoProgress } = useFirebase();
   const [played, setPlayed] = useState(0);
-  const [loaded, setLoaded] = useState(false);
+  const [completed, setCompleted] = useState(false);
 
-  const handleProgress = useCallback(({ played }) => {
+  const handleProgress = useCallback(async ({ played }) => {
     setPlayed(played);
-    if (played > 0.9 && !loaded) { // Mark as completed when 90% watched
-      setLoaded(true);
-      updateVideoProgress(currentUser.uid, courseId, videoId, 100);
-      onProgress && onProgress(videoId);
+    
+    // Mark video as completed when 90% watched
+    if (played > 0.9 && !completed) {
+      setCompleted(true);
+      
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          'progress.videosWatched': increment(1)
+        });
+      } catch (error) {
+        console.error('Error updating video progress:', error);
+      }
     }
-  }, [courseId, videoId, currentUser, updateVideoProgress, loaded, onProgress]);
+  }, [courseId, videoId, currentUser.uid, completed]);
 
   return (
     <Box sx={{ width: '100%', position: 'relative' }}>
@@ -32,6 +41,7 @@ const VideoPlayer = ({ videoUrl, courseId, videoId, onProgress }) => {
       <Box sx={{ mt: 1 }}>
         <Typography variant="caption" color="text.secondary">
           Progress: {Math.round(played * 100)}%
+          {completed && " ✓ Completed"}
         </Typography>
         <LinearProgress
           variant="determinate"
@@ -41,7 +51,7 @@ const VideoPlayer = ({ videoUrl, courseId, videoId, onProgress }) => {
             borderRadius: 2,
             backgroundColor: 'rgba(0, 0, 203, 0.1)',
             '& .MuiLinearProgress-bar': {
-              backgroundColor: 'primary.main',
+              backgroundColor: completed ? 'success.main' : 'primary.main',
             }
           }}
         />
