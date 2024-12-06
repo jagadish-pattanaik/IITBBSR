@@ -39,7 +39,9 @@ const Login = () => {
       const result = await googleSignIn();
       console.log('Sign in result:', result);
       
-      if (result.isNewUser) {
+      if (result.isAdmin) {
+        navigate('/admin');
+      } else if (result.isNewUser) {
         setShowOnboarding(true);
       } else {
         navigate('/dashboard');

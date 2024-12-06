@@ -2,7 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { createTheme } from '@mui/material/styles';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
 // Import pages
@@ -21,6 +21,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 function App() {
   const location = useLocation();
   const [mode, setMode] = useState('light');
+
+  const toggleColorMode = useCallback(() => {
+    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+  }, []);
 
   const theme = useMemo(
     () =>
@@ -56,10 +60,6 @@ function App() {
     [mode]
   );
 
-  const toggleColorMode = () => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-  };
-
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>
@@ -68,12 +68,12 @@ function App() {
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Home toggleColorMode={toggleColorMode} />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={<Login toggleColorMode={toggleColorMode} />} />
               <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <Dashboard toggleColorMode={toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -81,7 +81,7 @@ function App() {
                 path="/course/:courseId"
                 element={
                   <ProtectedRoute>
-                    <CoursePage />
+                    <CoursePage toggleColorMode={toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -89,7 +89,7 @@ function App() {
                 path="/admin"
                 element={
                   <ProtectedRoute adminOnly>
-                    <AdminDashboard />
+                    <AdminDashboard toggleColorMode={toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -97,7 +97,7 @@ function App() {
                 path="/quizzes"
                 element={
                   <ProtectedRoute>
-                    <QuizSection />
+                    <QuizSection toggleColorMode={toggleColorMode} />
                   </ProtectedRoute>
                 }
               />

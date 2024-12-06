@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFirebase } from '../hooks/useFirebase';
 import {
   Box,
@@ -8,11 +8,13 @@ import {
   Tab,
   Tabs,
   CircularProgress,
-  Alert
+  Alert,
+  Button
 } from '@mui/material';
 import {
   People,
-  Assignment
+  Assignment,
+  Refresh
 } from '@mui/icons-material';
 import Header from '../components/Header';
 import UserList from '../components/UserList';
@@ -20,71 +22,76 @@ import ProjectReview from '../components/ProjectReview';
 import UserDetailsModal from '../components/UserDetailsModal';
 import { motion } from 'framer-motion';
 
-const AdminDashboard = () => {
-  const { getUsers, getSubmissions, reviewProject, loading, error } = useFirebase();
+const AdminDashboard = ({ toggleColorMode }) => {
+  const { getUsers } = useFirebase();
   const [activeTab, setActiveTab] = useState(0);
   const [users, setUsers] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchData = useCallback(async () => {
+    if (loading) return; // Prevent multiple fetches
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const usersData = await getUsers();
+      console.log('Fetched users data:', usersData);
+      
+      if (Array.isArray(usersData)) {
+        setUsers(usersData);
+      } else {
+        console.error('Users data is not an array:', usersData);
+        setUsers([]);
+      }
+    } catch (err) {
+      console.error('Error fetching admin data:', err);
+      setError('Failed to load data. Please try again.');
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [getUsers]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [usersData, submissionsData] = await Promise.all([
-          getUsers(),
-          getSubmissions()
-        ]);
-        setUsers(usersData);
-        setSubmissions(submissionsData);
-      } catch (err) {
-        console.error('Error fetching admin data:', err);
-      }
-    };
-
     fetchData();
-  }, [getUsers, getSubmissions]);
+  }, [fetchData]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
-  const handleProjectReview = async (submissionId, status) => {
-    try {
-      await reviewProject(submissionId, status);
-      setSubmissions(prev =>
-        prev.map(sub =>
-          sub.id === submissionId ? { ...sub, status } : sub
-        )
-      );
-    } catch (err) {
-      console.error('Error reviewing project:', err);
-    }
-  };
-
-  const handleViewUser = (userId) => {
-    const user = users.find(u => u.id === userId);
-    setSelectedUser(user);
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header />
+      <Header toggleColorMode={toggleColorMode} />
       
       <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1 }}>
-        <Typography variant="h4" gutterBottom>
-          Admin Dashboard
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">
+            Admin Dashboard
+          </Typography>
+          <Button
+            startIcon={<Refresh />}
+            onClick={fetchData}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+        </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 4 }}>
+          <Alert 
+            severity="error" 
+            sx={{ mb: 4 }}
+            action={
+              <Button color="inherit" size="small" onClick={fetchData}>
+                Retry
+              </Button>
+            }
+          >
             {error}
           </Alert>
         )}
@@ -97,34 +104,59 @@ const AdminDashboard = () => {
             indicatorColor="primary"
             textColor="primary"
           >
-            <Tab icon={<People />} label="Users" />
-            <Tab icon={<Assignment />} label="Project Reviews" />
+            <Tab 
+              icon={<People />} 
+              label={`Users (${users.length})`} 
+            />
+            <Tab 
+              icon={<Assignment />} 
+              label={`Project Reviews (${submissions.length})`} 
+            />
           </Tabs>
         </Paper>
 
-        <Box sx={{ mt: 3 }}>
-          {activeTab === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
+        <Box sx={{ mt: 3, position: 'relative' }}>
+          {loading && (
+            <Box 
+              sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1
+              }}
             >
-              <UserList users={users} onViewUser={handleViewUser} />
-            </motion.div>
+              <CircularProgress />
+            </Box>
           )}
           
-          {activeTab === 1 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <ProjectReview
-                submissions={submissions}
-                onReview={handleProjectReview}
-              />
-            </motion.div>
-          )}
+          <Box sx={{ opacity: loading ? 0.5 : 1 }}>
+            {activeTab === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <UserList 
+                  users={users} 
+                  onViewUser={setSelectedUser}
+                />
+              </motion.div>
+            )}
+            
+            {activeTab === 1 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <ProjectReview
+                  submissions={submissions}
+                  onReview={() => {}}
+                />
+              </motion.div>
+            )}
+          </Box>
         </Box>
       </Container>
 

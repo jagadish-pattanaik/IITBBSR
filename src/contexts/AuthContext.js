@@ -24,6 +24,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const createUserDocument = async (user) => {
     try {
@@ -53,6 +54,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const checkIsAdmin = async (userId) => {
+    try {
+      const adminRef = doc(db, 'admins', userId);
+      const adminDoc = await getDoc(adminRef);
+      return adminDoc.exists();
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
+
   const googleSignIn = async () => {
     try {
       console.log('Starting Google Sign In...');
@@ -62,7 +74,9 @@ export const AuthProvider = ({ children }) => {
       console.log('Sign in successful:', user.email);
 
       const isNewUser = await createUserDocument(user);
-      return { isNewUser, user };
+      const isAdmin = await checkIsAdmin(user.uid);
+
+      return { isNewUser, user, isAdmin };
     } catch (error) {
       console.error('Authentication error:', error);
       throw error;
@@ -85,11 +99,14 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser(user);
         try {
           await createUserDocument(user);
+          const adminStatus = await checkIsAdmin(user.uid);
+          setIsAdmin(adminStatus);
         } catch (error) {
           console.error('Error in auth state change:', error);
         }
       } else {
         setCurrentUser(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
@@ -99,6 +116,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     currentUser,
+    isAdmin,
     googleSignIn,
     logout
   };

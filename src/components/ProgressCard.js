@@ -1,4 +1,4 @@
-import { Box, Paper, Typography, LinearProgress } from '@mui/material';
+import { Box, Paper, Typography, CircularProgress } from '@mui/material';
 import { motion } from 'framer-motion';
 
 const ProgressCard = ({ title, value, total, icon, color }) => {
@@ -15,24 +15,48 @@ const ProgressCard = ({ title, value, total, icon, color }) => {
           <Box sx={{ color: color, mr: 2 }}>{icon}</Box>
           <Typography variant="h6">{title}</Typography>
         </Box>
-        <Typography variant="h4" gutterBottom>
-          {value}/{total}
-        </Typography>
-        <LinearProgress 
-          variant="determinate" 
-          value={percentage} 
-          sx={{ 
-            height: 8, 
-            borderRadius: 4,
-            backgroundColor: `${color}20`,
-            '& .MuiLinearProgress-bar': {
-              backgroundColor: color,
-            }
-          }} 
-        />
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          {percentage}% Complete
-        </Typography>
+        
+        <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+          <CircularProgress
+            variant="determinate"
+            value={percentage}
+            size={80}
+            thickness={4}
+            sx={{
+              color: color,
+              '& .MuiCircularProgress-circle': {
+                strokeLinecap: 'round',
+              },
+            }}
+          />
+          <Box
+            sx={{
+              top: 0,
+              left: 0,
+              bottom: 0,
+              right: 0,
+              position: 'absolute',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Typography
+              variant="caption"
+              component="div"
+              color="text.secondary"
+              sx={{ fontWeight: 600 }}
+            >
+              {`${percentage}%`}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            {value} of {total} completed
+          </Typography>
+        </Box>
       </Paper>
     </motion.div>
   );
