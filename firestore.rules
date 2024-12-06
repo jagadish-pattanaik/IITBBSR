@@ -14,20 +14,17 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Users collection - no real-time updates needed
     match /users/{userId} {
       allow read, create: if isAuthenticated();
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Courses collection - static data, no real-time updates
     match /courses/{courseId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Project submissions - only admin needs real-time
     match /submissions/{submissionId} {
       allow read: if isAuthenticated() &&
         (request.auth.uid == resource.data.userId || isAdmin());
@@ -36,13 +33,13 @@ service cloud.firestore {
       allow update: if isAdmin();
     }
 
-    // Quizzes - static data, no real-time updates
+    // Quizzes - external links and deadlines
     match /quizzes/{quizId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Admins collection - static data
+    // Admins collection
     match /admins/{adminId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
