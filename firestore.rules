@@ -23,6 +23,12 @@ service cloud.firestore {
     match /courses/{courseId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+      
+      // Allow access to projects subcollection
+      match /projects/{projectId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdmin();
+      }
     }
 
     match /submissions/{submissionId} {

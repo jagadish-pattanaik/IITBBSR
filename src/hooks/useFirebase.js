@@ -4,7 +4,12 @@ import {
   query, 
   getDocs,
   where,
-  orderBy 
+  orderBy,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp 
 } from 'firebase/firestore';
 
 // Cache for users data
@@ -75,9 +80,85 @@ export const useFirebase = () => {
     }
   };
 
+  // Admin Functions
+  const createCourse = async (courseData) => {
+    try {
+      const coursesRef = collection(db, 'courses');
+      const newCourse = {
+        ...courseData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      const docRef = await addDoc(coursesRef, newCourse);
+      return docRef.id;
+    } catch (err) {
+      console.error('Error creating course:', err);
+      throw err;
+    }
+  };
+
+  const addProjectToCourse = async (courseId, projectData) => {
+    try {
+      const projectsRef = collection(db, `courses/${courseId}/projects`);
+      const newProject = {
+        ...projectData,
+        createdAt: serverTimestamp()
+      };
+      const docRef = await addDoc(projectsRef, newProject);
+      return docRef.id;
+    } catch (err) {
+      console.error('Error adding project:', err);
+      throw err;
+    }
+  };
+
+  const createQuiz = async (quizData) => {
+    try {
+      const quizzesRef = collection(db, 'quizzes');
+      const newQuiz = {
+        ...quizData,
+        createdAt: serverTimestamp(),
+        endTime: new Date(quizData.endTime).toISOString()
+      };
+      const docRef = await addDoc(quizzesRef, newQuiz);
+      return docRef.id;
+    } catch (err) {
+      console.error('Error creating quiz:', err);
+      throw err;
+    }
+  };
+
+  const updateCourse = async (courseId, courseData) => {
+    try {
+      const courseRef = doc(db, 'courses', courseId);
+      await updateDoc(courseRef, {
+        ...courseData,
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Error updating course:', err);
+      throw err;
+    }
+  };
+
+  const deleteCourse = async (courseId) => {
+    try {
+      await deleteDoc(doc(db, 'courses', courseId));
+    } catch (err) {
+      console.error('Error deleting course:', err);
+      throw err;
+    }
+  };
+
   return {
     getCourses,
     getQuizzes,
-    getUsers
+    getUsers,
+    // Admin functions
+    createCourse,
+    addProjectToCourse,
+    createQuiz,
+    updateCourse,
+    deleteCourse
   };
 }; 

@@ -14,13 +14,15 @@ import {
 import {
   People,
   Assignment,
-  Refresh
+  Refresh,
+  School
 } from '@mui/icons-material';
 import Header from '../components/Header';
 import UserList from '../components/UserList';
 import ProjectReview from '../components/ProjectReview';
 import UserDetailsModal from '../components/UserDetailsModal';
 import { motion } from 'framer-motion';
+import CourseManagement from '../components/admin/CourseManagement';
 
 const AdminDashboard = ({ toggleColorMode }) => {
   const { getUsers } = useFirebase();
@@ -64,11 +66,21 @@ const AdminDashboard = ({ toggleColorMode }) => {
     setActiveTab(newValue);
   };
 
+  const handleRetry = () => {
+    fetchData();
+  };
+
+  const tabs = [
+    { icon: <People />, label: 'Users', component: <UserList users={users} onViewUser={setSelectedUser} /> },
+    { icon: <School />, label: 'Courses', component: <CourseManagement /> },
+    { icon: <Assignment />, label: 'Projects', component: <ProjectReview submissions={submissions} onReview={() => {}} /> }
+  ];
+
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <Header toggleColorMode={toggleColorMode} />
       
-      <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1 }}>
+      <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4">
             Admin Dashboard
@@ -87,7 +99,11 @@ const AdminDashboard = ({ toggleColorMode }) => {
             severity="error" 
             sx={{ mb: 4 }}
             action={
-              <Button color="inherit" size="small" onClick={fetchData}>
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={handleRetry}
+              >
                 Retry
               </Button>
             }
@@ -104,58 +120,19 @@ const AdminDashboard = ({ toggleColorMode }) => {
             indicatorColor="primary"
             textColor="primary"
           >
-            <Tab 
-              icon={<People />} 
-              label={`Users (${users.length})`} 
-            />
-            <Tab 
-              icon={<Assignment />} 
-              label={`Project Reviews (${submissions.length})`} 
-            />
+            {tabs.map((tab, index) => (
+              <Tab 
+                key={index}
+                icon={tab.icon} 
+                label={tab.label}
+              />
+            ))}
           </Tabs>
         </Paper>
 
         <Box sx={{ mt: 3, position: 'relative' }}>
-          {loading && (
-            <Box 
-              sx={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%)',
-                zIndex: 1
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          )}
-          
-          <Box sx={{ opacity: loading ? 0.5 : 1 }}>
-            {activeTab === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <UserList 
-                  users={users} 
-                  onViewUser={setSelectedUser}
-                />
-              </motion.div>
-            )}
-            
-            {activeTab === 1 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <ProjectReview
-                  submissions={submissions}
-                  onReview={() => {}}
-                />
-              </motion.div>
-            )}
+          <Box sx={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+            {tabs[activeTab].component}
           </Box>
         </Box>
       </Container>
