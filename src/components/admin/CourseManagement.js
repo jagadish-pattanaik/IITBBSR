@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -18,7 +18,12 @@ import {
   Divider,
   Stack,
   Chip,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  DialogContentText
 } from '@mui/material';
 import {
   Add,
@@ -28,7 +33,8 @@ import {
   Assignment,
   Save,
   Close,
-  Refresh
+  Refresh,
+  Search
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useFirebase } from '../../hooks/useFirebase';
@@ -51,6 +57,16 @@ const CourseManagement = () => {
   });
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [levelFilter, setLevelFilter] = useState('all');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState(null);
+
+  const DIFFICULTY_LEVELS = [
+    { value: 'Beginner', label: 'Beginner' },
+    { value: 'Intermediate', label: 'Intermediate' },
+    { value: 'Advanced', label: 'Advanced' }
+  ];
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -104,16 +120,53 @@ const CourseManagement = () => {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleDeleteClick = (course) => {
+    setCourseToDelete(course);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!courseToDelete) return;
+
     try {
-      if (selectedCourse) {
-        await updateCourse(selectedCourse.id, formData);
+      setLoading(true);
+      await deleteCourse(courseToDelete.id);
+      setDataFetched(false);
+      setDeleteConfirmOpen(false);
+      setCourseToDelete(null);
+    } catch (error) {
+      console.error('Error deleting course:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.title || !formData.description || !formData.duration || !formData.level) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (selectedCourse?.id) {
+        await updateCourse(selectedCourse.id, {
+          ...formData,
+          updatedAt: new Date().toISOString()
+        });
       } else {
-        await createCourse(formData);
+        await createCourse({
+          ...formData,
+          createdAt: new Date().toISOString(),
+          order: courses.length
+        });
       }
+      setDataFetched(false);
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving course:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,27 +202,64 @@ const CourseManagement = () => {
     }
   };
 
+  const filteredCourses = useMemo(() => {
+    return courses.filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesLevel = levelFilter === 'all' || course.level === levelFilter;
+      return matchesSearch && matchesLevel;
+    });
+  }, [courses, searchTerm, levelFilter]);
+
+  const levels = useMemo(() => 
+    [...new Set(courses.map(course => course.level))].filter(Boolean),
+    [courses]
+  );
+
   return (
     <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">Course Management</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            Refresh
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
-            Add Course
-          </Button>
-        </Box>
+      <Box sx={{ mb: 3 }}>
+        <Stack spacing={2}>
+          <TextField
+            fullWidth
+            placeholder="Search courses by title or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+            }}
+          />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>Level</InputLabel>
+              <Select
+                value={levelFilter}
+                label="Level"
+                onChange={(e) => setLevelFilter(e.target.value)}
+              >
+                <MenuItem value="all">All Levels</MenuItem>
+                {levels.map(level => (
+                  <MenuItem key={level} value={level}>{level}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenDialog()}
+            >
+              Add Course
+            </Button>
+          </Box>
+        </Stack>
       </Box>
 
       <Box sx={{ position: 'relative', minHeight: '200px' }}>
@@ -189,7 +279,7 @@ const CourseManagement = () => {
 
         <Box sx={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
           <Grid container spacing={3}>
-            {courses.map((course) => (
+            {filteredCourses.map((course) => (
               <Grid item xs={12} sm={6} md={4} key={course.id}>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -228,7 +318,11 @@ const CourseManagement = () => {
                       </Tooltip>
                       <Box sx={{ flexGrow: 1 }} />
                       <Tooltip title="Delete Course">
-                        <IconButton color="error">
+                        <IconButton 
+                          color="error"
+                          onClick={() => handleDeleteClick(course)}
+                          disabled={loading}
+                        >
                           <Delete />
                         </IconButton>
                       </Tooltip>
@@ -278,27 +372,82 @@ const CourseManagement = () => {
                 />
               </Grid>
               <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Level"
-                  value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                  placeholder="e.g., Beginner"
-                />
+                <FormControl fullWidth>
+                  <InputLabel>Level</InputLabel>
+                  <Select
+                    value={formData.level || ''}
+                    label="Level"
+                    onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                  >
+                    {DIFFICULTY_LEVELS.map((level) => (
+                      <MenuItem key={level.value} value={level.value}>
+                        {level.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} startIcon={<Close />}>
+          <Button 
+            onClick={handleCloseDialog} 
+            startIcon={<Close />}
+            disabled={loading}
+          >
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
-            startIcon={<Save />}
+            startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+            disabled={loading}
           >
-            Save
+            {selectedCourse ? 'Update Course' : 'Create Course'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        PaperProps={{
+          elevation: 3,
+          sx: {
+            borderRadius: 2,
+            minWidth: '400px'
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Delete color="error" />
+            Confirm Deletion
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the course "{courseToDelete?.title}"? This action cannot be undone.
+            All associated videos and projects will also be deleted.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDeleteConfirmOpen(false)}
+            variant="outlined"
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <Delete />}
+          >
+            Delete Course
           </Button>
         </DialogActions>
       </Dialog>

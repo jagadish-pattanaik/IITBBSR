@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -11,13 +11,18 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   IconButton,
   Tooltip,
   Chip,
   Stack,
   Divider,
-  CircularProgress
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   Add,
@@ -26,7 +31,8 @@ import {
   Save,
   Close,
   Refresh,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Search
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useFirebase } from '../../hooks/useFirebase';
@@ -43,8 +49,20 @@ const QuizManagement = () => {
     description: '',
     link: '',
     endTime: '',
-    duration: ''
+    duration: '',
+    level: ''
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [levelFilter, setLevelFilter] = useState('all');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [quizToDelete, setQuizToDelete] = useState(null);
+
+  const DIFFICULTY_LEVELS = [
+    { value: 'Beginner', label: 'Beginner' },
+    { value: 'Intermediate', label: 'Intermediate' },
+    { value: 'Advanced', label: 'Advanced' }
+  ];
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -69,12 +87,26 @@ const QuizManagement = () => {
     setDataFetched(false);
   };
 
-  const handleDelete = async (quizId) => {
+  const handleDeleteClick = (quiz) => {
+    setQuizToDelete(quiz);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!quizToDelete) return;
+
     try {
-      await deleteQuiz(quizId);
-      setDataFetched(false); // Refresh list after deletion
+      setLoading(true);
+      console.log('Deleting quiz:', quizToDelete.id);
+      await deleteQuiz(quizToDelete.id);
+      setDataFetched(false); // Refresh list
+      setDeleteConfirmOpen(false);
+      setQuizToDelete(null);
     } catch (error) {
       console.error('Error deleting quiz:', error);
+      alert('Failed to delete quiz. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,7 +123,8 @@ const QuizManagement = () => {
         description: '',
         link: '',
         endTime: '',
-        duration: ''
+        duration: '',
+        level: ''
       });
       setSelectedQuiz(null);
     }
@@ -106,45 +139,117 @@ const QuizManagement = () => {
       description: '',
       link: '',
       endTime: '',
-      duration: ''
+      duration: '',
+      level: ''
     });
   };
 
   const handleSubmit = async () => {
+    if (!formData.title || !formData.description || !formData.link || !formData.endTime || !formData.duration || !formData.level) {
+      alert('Please fill in all fields');
+      return;
+    }
+
     try {
-      if (selectedQuiz) {
-        await updateQuiz(selectedQuiz.id, formData);
+      setLoading(true);
+      const quizData = {
+        ...formData,
+        duration: Number(formData.duration),
+        updatedAt: new Date().toISOString()
+      };
+
+      if (selectedQuiz?.id) {
+        console.log('Updating quiz:', selectedQuiz.id, quizData);
+        await updateQuiz(selectedQuiz.id, quizData);
       } else {
-        await createQuiz(formData);
+        console.log('Creating new quiz:', quizData);
+        await createQuiz({
+          ...quizData,
+          createdAt: new Date().toISOString()
+        });
       }
-      handleCloseDialog();
       setDataFetched(false); // Refresh list
+      handleCloseDialog();
     } catch (error) {
       console.error('Error saving quiz:', error);
+      alert('Failed to save quiz. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Filter quizzes
+  const filteredQuizzes = useMemo(() => {
+    return quizzes.filter(quiz => {
+      const isActive = new Date(quiz.endTime) > new Date();
+      const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          quiz.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || 
+                          (statusFilter === 'active' && isActive) ||
+                          (statusFilter === 'expired' && !isActive);
+      const matchesLevel = levelFilter === 'all' || quiz.level === levelFilter;
+      return matchesSearch && matchesStatus && matchesLevel;
+    });
+  }, [quizzes, searchTerm, statusFilter, levelFilter]);
+
   return (
     <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">Quiz Management</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            Refresh
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
-            Add Quiz
-          </Button>
-        </Box>
+      <Box sx={{ mb: 3 }}>
+        <Stack spacing={2}>
+          <TextField
+            fullWidth
+            placeholder="Search quizzes by title or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+            }}
+          />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">All Quizzes</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="expired">Expired</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Level</InputLabel>
+              <Select
+                value={levelFilter}
+                label="Level"
+                onChange={(e) => setLevelFilter(e.target.value)}
+              >
+                <MenuItem value="all">All Levels</MenuItem>
+                {DIFFICULTY_LEVELS.map((level) => (
+                  <MenuItem key={level.value} value={level.value}>
+                    {level.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenDialog()}
+            >
+              Add Quiz
+            </Button>
+          </Box>
+        </Stack>
       </Box>
 
       <Box sx={{ position: 'relative', minHeight: '200px' }}>
@@ -164,7 +269,7 @@ const QuizManagement = () => {
 
         <Box sx={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
           <Grid container spacing={3}>
-            {quizzes.map((quiz) => (
+            {filteredQuizzes.map((quiz) => (
               <Grid item xs={12} sm={6} md={4} key={quiz.id}>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -181,20 +286,30 @@ const QuizManagement = () => {
                       </Typography>
                       <Stack direction="row" spacing={1}>
                         <Chip 
-                          label={`${quiz.duration} mins`} 
-                          size="small" 
-                        />
-                        <Chip 
-                          label={new Date(quiz.endTime).toLocaleDateString()} 
+                          label={quiz.level || 'No Level'} 
                           size="small"
-                          color={new Date(quiz.endTime) > new Date() ? "success" : "error"}
+                          color="primary"
+                          variant="outlined"
+                        />
+                        <Chip
+                          label={new Date(quiz.endTime) > new Date() ? 'Active' : 'Expired'}
+                          color={new Date(quiz.endTime) > new Date() ? 'success' : 'error'}
+                          size="small"
+                        />
+                        <Chip
+                          label={`${quiz.duration} mins`}
+                          size="small"
+                          color="secondary"
                         />
                       </Stack>
                     </CardContent>
                     <Divider />
                     <CardActions>
                       <Tooltip title="Edit Quiz">
-                        <IconButton onClick={() => handleOpenDialog(quiz)}>
+                        <IconButton 
+                          onClick={() => handleOpenDialog(quiz)}
+                          disabled={loading}
+                        >
                           <Edit />
                         </IconButton>
                       </Tooltip>
@@ -210,7 +325,8 @@ const QuizManagement = () => {
                       <Tooltip title="Delete Quiz">
                         <IconButton 
                           color="error"
-                          onClick={() => handleDelete(quiz.id)}
+                          onClick={() => handleDeleteClick(quiz)}
+                          disabled={loading}
                         >
                           <Delete />
                         </IconButton>
@@ -223,6 +339,48 @@ const QuizManagement = () => {
           </Grid>
         </Box>
       </Box>
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        PaperProps={{
+          elevation: 3,
+          sx: {
+            borderRadius: 2,
+            minWidth: '400px'
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Delete color="error" />
+            Confirm Deletion
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the quiz "{quizToDelete?.title}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDeleteConfirmOpen(false)}
+            variant="outlined"
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <Delete />}
+          >
+            Delete Quiz
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
@@ -251,7 +409,7 @@ const QuizManagement = () => {
               onChange={(e) => setFormData({ ...formData, link: e.target.value })}
             />
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid item xs={4}>
                 <TextField
                   fullWidth
                   type="datetime-local"
@@ -261,28 +419,52 @@ const QuizManagement = () => {
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={4}>
                 <TextField
                   fullWidth
                   label="Duration (minutes)"
                   type="number"
                   value={formData.duration}
                   onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                  InputProps={{
+                    inputProps: { min: 1 }
+                  }}
                 />
+              </Grid>
+              <Grid item xs={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Level</InputLabel>
+                  <Select
+                    value={formData.level || ''}
+                    label="Level"
+                    onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                  >
+                    {DIFFICULTY_LEVELS.map((level) => (
+                      <MenuItem key={level.value} value={level.value}>
+                        {level.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} startIcon={<Close />}>
+          <Button 
+            onClick={handleCloseDialog} 
+            startIcon={<Close />}
+            disabled={loading}
+          >
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
-            startIcon={<Save />}
+            startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+            disabled={loading}
           >
-            Save
+            {selectedQuiz ? 'Update Quiz' : 'Create Quiz'}
           </Button>
         </DialogActions>
       </Dialog>

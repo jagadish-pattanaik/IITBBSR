@@ -97,6 +97,18 @@ const Dashboard = ({ toggleColorMode }) => {
     fetchData();
   }, [fetchData]);
 
+  const filteredQuizzes = useMemo(() => {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    return quizzes.filter(quiz => {
+      const quizEndTime = new Date(quiz.endTime);
+      const isActive = quizEndTime > new Date();
+      const isRecentlyExpired = !isActive && quizEndTime > oneMonthAgo;
+      return isActive || isRecentlyExpired;
+    });
+  }, [quizzes]);
+
   return (
     <AnimatedPage>
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -196,6 +208,8 @@ const Dashboard = ({ toggleColorMode }) => {
                   <Button
                     endIcon={<ArrowForward />}
                     onClick={() => navigate('/courses')}
+                    variant="outlined"
+                    color="primary"
                   >
                     View All
                   </Button>
@@ -221,17 +235,25 @@ const Dashboard = ({ toggleColorMode }) => {
               </Box>
             </motion.div>
 
-            {/* Add Quizzes Section after Courses */}
+            {/* Quizzes Section */}
             <motion.div variants={fadeInUp}>
               <Box sx={{ mb: 6 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                   <Typography variant="h5">
-                    Active Quizzes
+                    Quizzes
                   </Typography>
+                  <Button
+                    endIcon={<ArrowForward />}
+                    onClick={() => navigate('/quizzes')}
+                    variant="outlined"
+                    color="primary"
+                  >
+                    View All
+                  </Button>
                 </Box>
                 <Grid container spacing={3}>
-                  {quizzes.length > 0 ? (
-                    quizzes.map((quiz) => (
+                  {filteredQuizzes.length > 0 ? (
+                    filteredQuizzes.map((quiz) => (
                       <Grid item xs={12} sm={6} md={4} key={quiz.id}>
                         <QuizCard
                           quiz={quiz}
@@ -242,7 +264,7 @@ const Dashboard = ({ toggleColorMode }) => {
                   ) : (
                     <Grid item xs={12}>
                       <Typography variant="body1" color="text.secondary" align="center">
-                        No active quizzes at the moment.
+                        No active or recent quizzes at the moment.
                       </Typography>
                     </Grid>
                   )}

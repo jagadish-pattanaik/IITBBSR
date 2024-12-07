@@ -10,17 +10,32 @@ import {
   Chip,
   Link,
   Tooltip,
-  Button
+  Button,
+  Stack,
+  TextField
 } from '@mui/material';
 import {
   CheckCircle,
   Cancel,
   GitHub,
-  OpenInNew
+  OpenInNew,
+  Search
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useState, useMemo } from 'react';
 
 const ProjectReview = ({ submissions, onReview }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter(sub => {
+      const matchesSearch = sub.userName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [submissions, searchTerm, statusFilter]);
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
@@ -52,11 +67,54 @@ const ProjectReview = ({ submissions, onReview }) => {
 
   return (
     <Paper sx={{ p: 3 }}>
+      <Box sx={{ mb: 3 }}>
+        <Stack spacing={2}>
+          <TextField
+            fullWidth
+            placeholder="Search by student name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+            }}
+          />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant={statusFilter === 'all' ? 'contained' : 'outlined'}
+              onClick={() => setStatusFilter('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={statusFilter === 'pending' ? 'contained' : 'outlined'}
+              color="warning"
+              onClick={() => setStatusFilter('pending')}
+            >
+              Pending
+            </Button>
+            <Button
+              variant={statusFilter === 'approved' ? 'contained' : 'outlined'}
+              color="success"
+              onClick={() => setStatusFilter('approved')}
+            >
+              Approved
+            </Button>
+            <Button
+              variant={statusFilter === 'rejected' ? 'contained' : 'outlined'}
+              color="error"
+              onClick={() => setStatusFilter('rejected')}
+            >
+              Rejected
+            </Button>
+          </Box>
+        </Stack>
+      </Box>
+
       <Typography variant="h6" gutterBottom>
         Project Submissions
       </Typography>
       <List>
-        {submissions.map((submission) => {
+        {filteredSubmissions.map((submission) => {
           const statusColor = getStatusColor(submission.status);
           
           return (
@@ -160,7 +218,7 @@ const ProjectReview = ({ submissions, onReview }) => {
             </motion.div>
           );
         })}
-        {submissions.length === 0 && (
+        {filteredSubmissions.length === 0 && (
           <Box 
             sx={{ 
               textAlign: 'center', 

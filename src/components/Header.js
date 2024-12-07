@@ -10,7 +10,7 @@ const Header = ({ toggleColorMode }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, logout, isAdmin } = useAuth();
+  const { currentUser, googleSignIn, logout, isAdmin } = useAuth();
   const isHomePage = location.pathname === '/';
   const isDashboardPage = location.pathname === '/dashboard';
   const isAdminPage = location.pathname === '/admin';
@@ -36,11 +36,20 @@ const Header = ({ toggleColorMode }) => {
     setLogoLoaded(true);
   }, []);
 
-  const handleAuthAction = () => {
+  const handleAuthAction = async () => {
     if (currentUser) {
       navigate('/dashboard');
     } else {
-      navigate('/login');
+      try {
+        const result = await googleSignIn();
+        if (result.isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+      }
     }
   };
 
@@ -193,7 +202,7 @@ const Header = ({ toggleColorMode }) => {
                 color="primary"
                 onClick={handleAuthAction}
               >
-                Login / Sign Up
+                {currentUser ? 'Go to Dashboard' : 'Login with Google'}
               </Button>
             </motion.div>
           )}

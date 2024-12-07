@@ -115,13 +115,10 @@ export const useFirebase = () => {
   const createQuiz = async (quizData) => {
     try {
       const quizzesRef = collection(db, 'quizzes');
-      const newQuiz = {
+      await addDoc(quizzesRef, {
         ...quizData,
-        createdAt: serverTimestamp(),
-        endTime: new Date(quizData.endTime).toISOString()
-      };
-      const docRef = await addDoc(quizzesRef, newQuiz);
-      return docRef.id;
+        createdAt: serverTimestamp()
+      });
     } catch (err) {
       console.error('Error creating quiz:', err);
       throw err;
@@ -150,6 +147,29 @@ export const useFirebase = () => {
     }
   };
 
+  const updateQuiz = async (quizId, quizData) => {
+    try {
+      const quizRef = doc(db, 'quizzes', quizId);
+      await updateDoc(quizRef, {
+        ...quizData,
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Error updating quiz:', err);
+      throw err;
+    }
+  };
+
+  const deleteQuiz = async (quizId) => {
+    try {
+      const quizRef = doc(db, 'quizzes', quizId);
+      await deleteDoc(quizRef);
+    } catch (err) {
+      console.error('Error deleting quiz:', err);
+      throw err;
+    }
+  };
+
   return {
     getCourses,
     getQuizzes,
@@ -159,6 +179,8 @@ export const useFirebase = () => {
     addProjectToCourse,
     createQuiz,
     updateCourse,
-    deleteCourse
+    deleteCourse,
+    updateQuiz,
+    deleteQuiz
   };
 }; 

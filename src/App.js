@@ -7,16 +7,18 @@ import { AnimatePresence } from 'framer-motion';
 
 // Import pages
 import Home from './pages/Home';
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CoursePage from './pages/CoursePage';
 import AdminDashboard from './pages/AdminDashboard';
 import QuizSection from './pages/QuizSection';
+import AllCourses from './pages/AllCourses';
+import AllQuizzes from './pages/AllQuizzes';
 
 // Import providers and components
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   const location = useLocation();
@@ -86,10 +88,10 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
+          <ScrollToTop />
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Home toggleColorMode={toggleColorMode} />} />
-              <Route path="/login" element={<Login toggleColorMode={toggleColorMode} />} />
               <Route
                 path="/dashboard"
                 element={
@@ -118,7 +120,15 @@ function App() {
                 path="/quizzes"
                 element={
                   <ProtectedRoute>
-                    <QuizSection toggleColorMode={toggleColorMode} />
+                    <AllQuizzes toggleColorMode={toggleColorMode} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses"
+                element={
+                  <ProtectedRoute>
+                    <AllCourses toggleColorMode={toggleColorMode} />
                   </ProtectedRoute>
                 }
               />

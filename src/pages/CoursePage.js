@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useFirebase } from '../hooks/useFirebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,7 +28,8 @@ import {
   CheckCircle,
   Assignment,
   GitHub,
-  OpenInNew
+  OpenInNew,
+  School
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
@@ -53,8 +54,9 @@ import { Link } from 'react-router-dom';
 const CoursePage = () => {
   const { courseId } = useParams();
   const { currentUser } = useAuth();
-  const { getCourses, submitProject, loading } = useFirebase();
+  const { getCourses, submitProject } = useFirebase();
   const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -65,20 +67,28 @@ const CoursePage = () => {
 
   useEffect(() => {
     const fetchCourse = async () => {
+      if (!courseId) return;
+
       try {
-        const courses = await getCourses();
-        const foundCourse = courses.find(c => c.id === courseId);
-        setCourse(foundCourse);
-        if (foundCourse?.videos?.length > 0) {
-          setSelectedVideo(foundCourse.videos[0]);
+        setLoading(true);
+        const courseDoc = await getDoc(doc(db, 'courses', courseId));
+        if (courseDoc.exists()) {
+          const courseData = courseDoc.data();
+          setCourse({ id: courseDoc.id, ...courseData });
+          // Set initial video
+          if (courseData.videos?.length > 0) {
+            setSelectedVideo(courseData.videos[0]);
+          }
         }
-      } catch (err) {
-        console.error('Error fetching course:', err);
+      } catch (error) {
+        console.error('Error fetching course:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchCourse();
-  }, [courseId, getCourses]);
+  }, [courseId]);
 
   useEffect(() => {
     const fetchUserProgress = async () => {
@@ -272,6 +282,12 @@ const CoursePage = () => {
     }
   };
 
+  const handleVideoSelect = useCallback((video) => {
+    console.log('Selecting video:', video);
+    setSelectedVideo(null);
+    setTimeout(() => setSelectedVideo(video), 0);
+  }, []);
+
   if (loading || !course) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -284,41 +300,167 @@ const CoursePage = () => {
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1 }}>
-        <Grid container spacing={4}>
-          {/* Main Content */}
+      {/* Course Title Section */}
+      <Container maxWidth="lg" sx={{ mt: 10, mb: 4 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'flex-start',
+            gap: 2,
+            mb: 2
+          }}>
+            <School 
+              sx={{ 
+                fontSize: 32,
+                color: 'primary.main',
+                mt: 1
+              }} 
+            />
+            <Box>
+              <Typography 
+                variant="h4"
+                sx={{ 
+                  fontWeight: 700,
+                  mb: 1,
+                  lineHeight: 1.2
+                }}
+              >
+                {course?.title}
+              </Typography>
+              <Typography 
+                variant="body1"
+                color="text.secondary"
+                sx={{ 
+                  maxWidth: '800px',
+                  lineHeight: 1.6,
+                  mb: 2
+                }}
+              >
+                {course?.description}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                {course?.level && (
+                  <Chip 
+                    label={course.level}
+                    color="primary"
+                    variant="outlined"
+                    size="medium"
+                    sx={{ fontWeight: 500, px: 2 }}
+                  />
+                )}
+                {course?.duration && (
+                  <Chip 
+                    label={course.duration}
+                    color="secondary"
+                    variant="outlined"
+                    size="medium"
+                    sx={{ fontWeight: 500, px: 2 }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </motion.div>
+
+        {/* Main Content Grid */}
+        <Grid container spacing={3} sx={{ mt: 2 }}>
+          {/* Video Player Section */}
           <Grid item xs={12} md={8}>
-            {selectedVideo && (
-              <VideoPlayer
-                videoUrl={selectedVideo.url}
-                courseId={courseId}
-                videoId={selectedVideo.id}
-                onProgress={handleVideoProgress}
-              />
+            {selectedVideo ? (
+              <Paper 
+                elevation={3}
+                sx={{ 
+                  p: 2,
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  bgcolor: 'background.paper'
+                }}
+              >
+                <VideoPlayer
+                  key={selectedVideo.id}
+                  videoUrl={selectedVideo.url}
+                  courseId={courseId}
+                  videoId={selectedVideo.id}
+                  onProgress={handleVideoProgress}
+                />
+                <Box sx={{ mt: 2 }}>
+                  <Typography 
+                    variant="h5"
+                    sx={{ 
+                      fontWeight: 600,
+                      mb: 1
+                    }}
+                  >
+                    {selectedVideo.title}
+                  </Typography>
+                  <Typography 
+                    variant="body1"
+                    color="text.secondary"
+                    sx={{ 
+                      lineHeight: 1.6,
+                      mb: 2
+                    }}
+                  >
+                    {selectedVideo.description}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Chip 
+                      label={`Duration: ${selectedVideo.duration}`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                    {completedVideos.has(selectedVideo.id) && (
+                      <Chip 
+                        icon={<CheckCircle />}
+                        label="Completed"
+                        color="success"
+                        variant="outlined"
+                        size="small"
+                      />
+                    )}
+                  </Box>
+                </Box>
+              </Paper>
+            ) : (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
             )}
-            
-            <Paper sx={{ mt: 3, p: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                {selectedVideo?.title || course.title}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {selectedVideo?.description || course.description}
-              </Typography>
-            </Paper>
           </Grid>
 
           {/* Sidebar */}
           <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2 }}>
+            <Paper 
+              sx={{ 
+                p: 2,
+                position: 'sticky',
+                top: '100px',
+                borderRadius: 2
+              }}
+            >
               <Typography variant="h6" gutterBottom>
                 Course Content
               </Typography>
               
               <List>
-                {course.videos?.map((video, index) => (
-                  <ListItem key={video.id} disablePadding>
-                    <ListItemButton
-                      onClick={() => setSelectedVideo(video)}
+                {course?.videos?.map((video) => (
+                  <ListItem
+                    key={video.id}
+                    disablePadding
+                    sx={{
+                      bgcolor: selectedVideo?.id === video.id ? 'action.selected' : 'transparent',
+                      borderRadius: 1,
+                      mb: 0.5,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <ListItemButton 
+                      onClick={() => handleVideoSelect(video)}
                       selected={selectedVideo?.id === video.id}
                     >
                       <ListItemIcon>
@@ -328,9 +470,12 @@ const CoursePage = () => {
                           <PlayCircleOutline />
                         )}
                       </ListItemIcon>
-                      <ListItemText
-                        primary={`${index + 1}. ${video.title}`}
-                        secondary={`${video.duration}`}
+                      <ListItemText 
+                        primary={video.title}
+                        secondary={video.duration}
+                        primaryTypographyProps={{
+                          fontWeight: selectedVideo?.id === video.id ? 600 : 400
+                        }}
                       />
                     </ListItemButton>
                   </ListItem>
@@ -341,7 +486,7 @@ const CoursePage = () => {
                 Projects
               </Typography>
               
-              {course.projects?.map((project) => {
+              {course?.projects?.map((project) => {
                 const submission = projectSubmissions[project.id];
                 const canSubmit = canSubmitProject(project.id);
                 
