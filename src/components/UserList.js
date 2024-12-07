@@ -16,7 +16,7 @@ import {
   Tooltip,
   Skeleton
 } from '@mui/material';
-import { Visibility } from '@mui/icons-material';
+import { BarChart } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const UserList = ({ users, onViewUser }) => {
@@ -55,7 +55,7 @@ const UserList = ({ users, onViewUser }) => {
               <TableCell>Branch</TableCell>
               <TableCell align="center">Videos Watched</TableCell>
               <TableCell align="center">Projects</TableCell>
-              <TableCell align="center">Actions</TableCell>
+              <TableCell align="center">Stats</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -108,12 +108,13 @@ const UserList = ({ users, onViewUser }) => {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="View Details">
+                    <Tooltip title="View Statistics">
                       <IconButton 
                         onClick={() => onViewUser(user)}
                         size="small"
+                        color="primary"
                       >
-                        <Visibility />
+                        <BarChart />
                       </IconButton>
                     </Tooltip>
                   </TableCell>

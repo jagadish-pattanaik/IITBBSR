@@ -11,30 +11,58 @@ import {
   List,
   ListItem,
   ListItemText,
-  Chip
+  Chip,
+  LinearProgress
 } from '@mui/material';
-import { Close, Email, School, Code } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const MotionDialog = motion(Dialog);
+import { 
+  Close, 
+  Email, 
+  School, 
+  Code,
+  OndemandVideo,
+  Assignment,
+  Quiz,
+  Timeline
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
 
 const UserDetailsModal = ({ open, onClose, user }) => {
   if (!user) return null;
 
+  const progressStats = [
+    {
+      icon: <OndemandVideo />,
+      label: 'Videos Watched',
+      value: user.progress?.videosWatched || 0,
+      total: 30,
+      color: 'primary'
+    },
+    {
+      icon: <Assignment />,
+      label: 'Projects Submitted',
+      value: user.progress?.projectsSubmitted || 0,
+      total: 10,
+      color: 'secondary'
+    },
+    {
+      icon: <School />,
+      label: 'Courses Completed',
+      value: user.progress?.coursesCompleted || 0,
+      total: 5,
+      color: 'success'
+    }
+  ];
+
   return (
-    <MotionDialog
+    <Dialog
       open={open}
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      initial={{ opacity: 0, y: -50 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -50 }}
-      transition={{ duration: 0.3 }}
     >
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6">User Details</Typography>
+          <Typography variant="h6">User Statistics</Typography>
           <IconButton onClick={onClose}>
             <Close />
           </IconButton>
@@ -96,53 +124,43 @@ const UserDetailsModal = ({ open, onClose, user }) => {
             <Typography variant="h6" gutterBottom>
               Progress Overview
             </Typography>
-            <List dense>
-              <ListItem>
-                <ListItemText
-                  primary="Videos Watched"
-                  secondary={
-                    <Chip
-                      label={user.progress.videosWatched}
-                      color="primary"
-                      size="small"
-                      sx={{ mt: 0.5 }}
-                    />
-                  }
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary="Projects Submitted"
-                  secondary={
-                    <Chip
-                      label={user.progress.projectsSubmitted}
-                      color="secondary"
-                      size="small"
-                      sx={{ mt: 0.5 }}
-                    />
-                  }
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemText
-                  primary="Quizzes Completed"
-                  secondary={
-                    <Chip
-                      label={user.progress.quizzesTaken}
-                      color="success"
-                      size="small"
-                      sx={{ mt: 0.5 }}
-                    />
-                  }
-                />
-              </ListItem>
-            </List>
+            <Box sx={{ mt: 2 }}>
+              {progressStats.map((stat, index) => (
+                <Box key={index} sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    {stat.icon}
+                    <Typography variant="body2" sx={{ ml: 1 }}>
+                      {stat.label}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
+                      {stat.value} / {stat.total}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={(stat.value / stat.total) * 100}
+                    color={stat.color}
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Activity Timeline
+            </Typography>
+            <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+              <Timeline sx={{ color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary" align="center">
+                Joined on {new Date(user.createdAt?.seconds * 1000).toLocaleDateString()}
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
-
-        {/* Add more sections as needed */}
       </DialogContent>
-    </MotionDialog>
+    </Dialog>
   );
 };
 

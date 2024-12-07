@@ -15,7 +15,8 @@ import {
   People,
   Assignment,
   Refresh,
-  School
+  School,
+  Quiz
 } from '@mui/icons-material';
 import Header from '../components/Header';
 import UserList from '../components/UserList';
@@ -23,6 +24,7 @@ import ProjectReview from '../components/ProjectReview';
 import UserDetailsModal from '../components/UserDetailsModal';
 import { motion } from 'framer-motion';
 import CourseManagement from '../components/admin/CourseManagement';
+import QuizManagement from '../components/admin/QuizManagement';
 
 const AdminDashboard = ({ toggleColorMode }) => {
   const { getUsers } = useFirebase();
@@ -73,7 +75,8 @@ const AdminDashboard = ({ toggleColorMode }) => {
   const tabs = [
     { icon: <People />, label: 'Users', component: <UserList users={users} onViewUser={setSelectedUser} /> },
     { icon: <School />, label: 'Courses', component: <CourseManagement /> },
-    { icon: <Assignment />, label: 'Projects', component: <ProjectReview submissions={submissions} onReview={() => {}} /> }
+    { icon: <Quiz />, label: 'Quizzes', component: <QuizManagement /> },
+    { icon: <Assignment />, label: 'Submissions', component: <ProjectReview submissions={submissions} onReview={() => {}} /> }
   ];
 
   return (

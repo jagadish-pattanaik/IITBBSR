@@ -1,10 +1,19 @@
 import { Box, Paper, Typography, Chip, Button } from '@mui/material';
 import { AccessTime, Assignment } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
 
 const QuizCard = ({ quiz, onStart }) => {
   const isActive = new Date(quiz.endTime) > new Date();
+  
+  const formatDate = (date) => {
+    return new Date(date).toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
   
   return (
     <motion.div
@@ -29,7 +38,7 @@ const QuizCard = ({ quiz, onStart }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <AccessTime sx={{ fontSize: 20, mr: 1, color: 'text.secondary' }} />
           <Typography variant="body2" color="text.secondary">
-            Ends: {format(new Date(quiz.endTime), 'PPp')}
+            Ends: {formatDate(quiz.endTime)}
           </Typography>
         </Box>
 

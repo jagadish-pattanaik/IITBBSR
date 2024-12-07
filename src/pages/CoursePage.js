@@ -27,7 +27,8 @@ import {
   PlayCircleOutline,
   CheckCircle,
   Assignment,
-  GitHub
+  GitHub,
+  OpenInNew
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
@@ -131,6 +132,60 @@ const CoursePage = () => {
 
     fetchSubmissions();
   }, [currentUser, courseId]);
+
+  useEffect(() => {
+    const checkCourseCompletion = async () => {
+      if (!currentUser?.uid || !course) return;
+
+      try {
+        // Get user data first
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        const userData = userDoc.data();
+
+        // Get all videos in course
+        const totalVideos = course.videos?.length || 0;
+        const totalProjects = course.projects?.length || 0;
+
+        // Get completed videos for this course
+        const completedVideos = new Set(
+          Object.keys(userData?.completedVideos || {})
+            .filter(key => key.startsWith(courseId))
+            .map(key => key.split('_')[1])
+        );
+
+        // Get approved project submissions
+        const projectSubmissionsQuery = query(
+          collection(db, 'submissions'),
+          where('userId', '==', currentUser.uid),
+          where('courseId', '==', courseId),
+          where('status', '==', 'approved')
+        );
+        const projectSnapshot = await getDocs(projectSubmissionsQuery);
+        const approvedProjects = projectSnapshot.docs.length;
+
+        // Check if course is completed
+        if (completedVideos.size === totalVideos && 
+            approvedProjects === totalProjects && 
+            totalVideos > 0 && 
+            totalProjects > 0) {
+          // Update user's completed courses count if not already marked
+          const completedCourses = userData?.completedCourses || {};
+
+          if (!completedCourses[courseId]) {
+            await updateDoc(userRef, {
+              [`completedCourses.${courseId}`]: serverTimestamp(),
+              'progress.coursesCompleted': increment(1)
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking course completion:', error);
+      }
+    };
+
+    checkCourseCompletion();
+  }, [currentUser?.uid, courseId, course]);
 
   const handleVideoProgress = (videoId) => {
     setCompletedVideos(prev => new Set([...prev, videoId]));
@@ -297,52 +352,75 @@ const CoursePage = () => {
                         title={getProjectStatusMessage(submission)}
                         placement="top"
                       >
-                        <span> {/* Wrapper needed for disabled buttons */}
-                          <Button
-                            fullWidth
-                            variant="outlined"
-                            startIcon={<Assignment />}
-                            onClick={() => handleProjectClick(project)}
-                            disabled={!canSubmit && submission?.status === 'approved'}
-                            endIcon={
-                              submission && (
-                                <Chip
-                                  size="small"
-                                  label={submission.status}
-                                  color={
-                                    submission.status === 'approved'
-                                      ? 'success'
-                                      : submission.status === 'rejected'
-                                      ? 'error'
-                                      : 'warning'
-                                  }
-                                />
-                              )
+                        <Button
+                          fullWidth
+                          variant={submission?.status === 'approved' ? 'contained' : 'outlined'}
+                          startIcon={<Assignment />}
+                          onClick={() => handleProjectClick(project)}
+                          disabled={!canSubmit && submission?.status === 'approved'}
+                          sx={{
+                            borderRadius: 2,
+                            py: 1.5,
+                            bgcolor: submission?.status === 'approved' ? 'success.main' : 'transparent',
+                            borderColor: submission?.status === 'rejected' ? 'error.main' : 
+                                        submission?.status === 'pending' ? 'warning.main' : 'primary.main',
+                            color: submission?.status === 'approved' ? 'white' : 
+                                   submission?.status === 'rejected' ? 'error.main' :
+                                   submission?.status === 'pending' ? 'warning.main' : 'primary.main',
+                            '&:hover': {
+                              bgcolor: submission?.status === 'approved' ? 'success.dark' : 'transparent',
+                              borderColor: submission?.status === 'rejected' ? 'error.dark' : 
+                                          submission?.status === 'pending' ? 'warning.dark' : 'primary.dark',
                             }
-                          >
-                            {project.title}
-                            {submission?.status === 'approved' && ' (Completed)'}
-                            {submission?.status === 'pending' && ' (Under Review)'}
-                            {submission?.status === 'rejected' && ' (Resubmit)'}
-                          </Button>
-                        </span>
+                          }}
+                          endIcon={
+                            submission && (
+                              <Chip
+                                size="small"
+                                label={submission.status.toUpperCase()}
+                                color={
+                                  submission.status === 'approved'
+                                    ? 'success'
+                                    : submission.status === 'rejected'
+                                    ? 'error'
+                                    : 'warning'
+                                }
+                                sx={{ 
+                                  fontWeight: 600,
+                                  letterSpacing: '0.5px',
+                                  ml: 1
+                                }}
+                              />
+                            )
+                          }
+                        >
+                          {project.title}
+                          {submission?.status === 'approved' && ' (Completed)'}
+                          {submission?.status === 'pending' && ' (Under Review)'}
+                          {submission?.status === 'rejected' && ' (Resubmit)'}
+                        </Button>
                       </Tooltip>
                       {submission?.githubLink && (
-                        <Typography
-                          variant="caption"
-                          component="div"
-                          sx={{ mt: 0.5, pl: 1 }}
-                        >
-                          <Link
+                        <Box sx={{ mt: 1, pl: 1 }}>
+                          <Button
+                            component={Link}
                             href={submission.githubLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                            size="small"
+                            startIcon={<GitHub sx={{ fontSize: 16 }} />}
+                            endIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                            sx={{ 
+                              textTransform: 'none',
+                              color: 'text.secondary',
+                              '&:hover': {
+                                color: 'primary.main'
+                              }
+                            }}
                           >
-                            <GitHub sx={{ fontSize: 16 }} />
                             View Submission
-                          </Link>
-                        </Typography>
+                          </Button>
+                        </Box>
                       )}
                     </Box>
                   </motion.div>

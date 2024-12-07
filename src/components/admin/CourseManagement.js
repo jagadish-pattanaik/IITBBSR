@@ -32,6 +32,8 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useFirebase } from '../../hooks/useFirebase';
+import VideoManagement from './VideoManagement';
+import ProjectManagement from './ProjectManagement';
 
 const CourseManagement = () => {
   const { createCourse, updateCourse, deleteCourse, addProjectToCourse, getCourses } = useFirebase();
@@ -47,6 +49,8 @@ const CourseManagement = () => {
     duration: '',
     level: ''
   });
+  const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [showProjectDialog, setShowProjectDialog] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -110,6 +114,38 @@ const CourseManagement = () => {
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving course:', error);
+    }
+  };
+
+  const handleVideoManagement = (course) => {
+    setSelectedCourse({...course});
+    setShowVideoDialog(true);
+  };
+
+  const handleProjectManagement = (course) => {
+    setSelectedCourse({...course});
+    setShowProjectDialog(true);
+  };
+
+  const handleSaveVideos = async (updatedCourse) => {
+    try {
+      await updateCourse(updatedCourse.id, updatedCourse);
+      setDataFetched(false); // Refresh list
+      setShowVideoDialog(false);
+      setSelectedCourse(null);
+    } catch (error) {
+      console.error('Error updating course videos:', error);
+    }
+  };
+
+  const handleSaveProjects = async (updatedCourse) => {
+    try {
+      await updateCourse(updatedCourse.id, updatedCourse);
+      setDataFetched(false); // Refresh list
+      setShowProjectDialog(false);
+      setSelectedCourse(null);
+    } catch (error) {
+      console.error('Error updating course projects:', error);
     }
   };
 
@@ -181,12 +217,12 @@ const CourseManagement = () => {
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Manage Videos">
-                        <IconButton>
+                        <IconButton onClick={() => handleVideoManagement(course)}>
                           <VideoLibrary />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Manage Projects">
-                        <IconButton>
+                        <IconButton onClick={() => handleProjectManagement(course)}>
                           <Assignment />
                         </IconButton>
                       </Tooltip>
@@ -266,6 +302,19 @@ const CourseManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <VideoManagement
+        open={showVideoDialog}
+        onClose={() => setShowVideoDialog(false)}
+        course={selectedCourse}
+        onSave={handleSaveVideos}
+      />
+      <ProjectManagement
+        open={showProjectDialog}
+        onClose={() => setShowProjectDialog(false)}
+        course={selectedCourse}
+        onSave={handleSaveProjects}
+      />
     </Box>
   );
 };

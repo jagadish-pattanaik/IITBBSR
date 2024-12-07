@@ -15,7 +15,8 @@ import {
   OndemandVideo,
   Assignment,
   Quiz,
-  ArrowForward
+  ArrowForward,
+  School
 } from '@mui/icons-material';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -27,12 +28,14 @@ import AnimatedPage from '../components/AnimatedPage';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import LoadingOverlay from '../components/LoadingOverlay';
+import QuizCard from '../components/QuizCard';
 
 const Dashboard = ({ toggleColorMode }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { getCourses } = useFirebase();
+  const { getCourses, getQuizzes } = useFirebase();
   const [courses, setCourses] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
   const [userProgress, setUserProgress] = useState({
     videosWatched: 0,
     projectsSubmitted: 0
@@ -55,9 +58,10 @@ const Dashboard = ({ toggleColorMode }) => {
       setLoading(true);
       setError(null);
 
-      const [userDoc, coursesData] = await Promise.all([
+      const [userDoc, coursesData, quizzesData] = await Promise.all([
         getDoc(doc(db, 'users', currentUser.uid)),
-        getCourses()
+        getCourses(),
+        getQuizzes()
       ]);
 
       const userData = userDoc.data();
@@ -70,9 +74,14 @@ const Dashboard = ({ toggleColorMode }) => {
 
       if (Array.isArray(coursesData)) {
         setCourses(coursesData);
-      } else {
-        console.error('Courses data is not an array:', coursesData);
-        setCourses([]);
+      }
+
+      if (Array.isArray(quizzesData)) {
+        // Filter out expired quizzes
+        const activeQuizzes = quizzesData.filter(quiz => 
+          new Date(quiz.endTime) > new Date()
+        );
+        setQuizzes(activeQuizzes);
       }
 
       setDataFetched(true);
@@ -82,7 +91,7 @@ const Dashboard = ({ toggleColorMode }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.uid, getCourses, dataFetched]);
+  }, [currentUser?.uid, getCourses, getQuizzes, dataFetched]);
 
   useEffect(() => {
     fetchData();
@@ -167,10 +176,10 @@ const Dashboard = ({ toggleColorMode }) => {
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <ProgressCard
-                    title="Quizzes Completed"
-                    value={0}
-                    total={8}
-                    icon={<Quiz fontSize="large" />}
+                    title="Courses Completed"
+                    value={userProgress.coursesCompleted || 0}
+                    total={5}
+                    icon={<School fontSize="large" />}
                     color="#00C853"
                   />
                 </Grid>
@@ -205,6 +214,35 @@ const Dashboard = ({ toggleColorMode }) => {
                     <Grid item xs={12}>
                       <Typography variant="body1" color="text.secondary" align="center">
                         No courses available at the moment.
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </Box>
+            </motion.div>
+
+            {/* Add Quizzes Section after Courses */}
+            <motion.div variants={fadeInUp}>
+              <Box sx={{ mb: 6 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Typography variant="h5">
+                    Active Quizzes
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  {quizzes.length > 0 ? (
+                    quizzes.map((quiz) => (
+                      <Grid item xs={12} sm={6} md={4} key={quiz.id}>
+                        <QuizCard
+                          quiz={quiz}
+                          onStart={() => window.open(quiz.link, '_blank')}
+                        />
+                      </Grid>
+                    ))
+                  ) : (
+                    <Grid item xs={12}>
+                      <Typography variant="body1" color="text.secondary" align="center">
+                        No active quizzes at the moment.
                       </Typography>
                     </Grid>
                   )}

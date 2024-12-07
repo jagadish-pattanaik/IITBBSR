@@ -2,7 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { createTheme } from '@mui/material/styles';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
 // Import pages
@@ -20,10 +20,31 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const location = useLocation();
-  const [mode, setMode] = useState('light');
+  const [mode, setMode] = useState(() => {
+    // Get theme from localStorage or default to 'light'
+    return localStorage.getItem('theme') || 'light';
+  });
 
   const toggleColorMode = useCallback(() => {
-    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+    setMode((prevMode) => {
+      const newMode = prevMode === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme', newMode); // Save to localStorage
+      return newMode;
+    });
+  }, []);
+
+  // Listen for system theme changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => {
+      const systemTheme = e.matches ? 'dark' : 'light';
+      if (!localStorage.getItem('theme')) {
+        setMode(systemTheme);
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   const theme = useMemo(
