@@ -33,7 +33,6 @@ import {
   Assignment,
   Save,
   Close,
-  Refresh,
   Search
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -220,45 +219,42 @@ const CourseManagement = () => {
     <Box>
       <Box sx={{ mb: 3 }}>
         <Stack spacing={2}>
-          <TextField
-            fullWidth
-            placeholder="Search courses by title or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
-            }}
-          />
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Level</InputLabel>
-              <Select
-                value={levelFilter}
-                label="Level"
-                onChange={(e) => setLevelFilter(e.target.value)}
-              >
-                <MenuItem value="all">All Levels</MenuItem>
-                {levels.map(level => (
-                  <MenuItem key={level} value={level}>{level}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Button
-              variant="outlined"
-              startIcon={<Refresh />}
-              onClick={handleRefresh}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
+            <TextField
+              fullWidth
+              placeholder="Search courses..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+              }}
+            />
             <Button
               variant="contained"
               startIcon={<Add />}
-              onClick={() => handleOpenDialog()}
+              onClick={() => {
+                setSelectedCourse(null);
+                setOpenDialog(true);
+              }}
             >
               Add Course
             </Button>
           </Box>
+          <FormControl>
+            <InputLabel>Level</InputLabel>
+            <Select
+              value={levelFilter}
+              label="Level"
+              onChange={(e) => setLevelFilter(e.target.value)}
+            >
+              <MenuItem value="all">All Levels</MenuItem>
+              {DIFFICULTY_LEVELS.map(level => (
+                <MenuItem key={level.value} value={level.value}>
+                  {level.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Stack>
       </Box>
 

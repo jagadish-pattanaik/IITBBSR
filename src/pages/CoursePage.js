@@ -50,6 +50,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { Link } from 'react-router-dom';
+import BackButton from '../components/BackButton';
 
 const CoursePage = () => {
   const { courseId } = useParams();
@@ -64,6 +65,7 @@ const CoursePage = () => {
   const [error, setError] = useState(null);
   const [projectSubmissions, setProjectSubmissions] = useState({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -211,46 +213,39 @@ const CoursePage = () => {
 
   const handleProjectSubmit = async (githubLink) => {
     try {
+      setLoading(true);
       setError(null);
-      
-      // Check if submission is allowed
-      if (!canSubmitProject(selectedProject.id)) {
-        setError('Cannot resubmit an approved or pending project');
-        return;
-      }
 
-      const submissionData = {
+      const submission = {
         userId: currentUser.uid,
-        courseId,
+        courseId: courseId,
+        courseTitle: course.title,
         projectId: selectedProject.id,
-        githubLink,
+        projectTitle: selectedProject.title,
+        githubLink: githubLink,
         status: 'pending',
         submittedAt: serverTimestamp()
       };
 
-      // Check if submission already exists
-      const existingSubmission = projectSubmissions[selectedProject.id];
-      if (existingSubmission) {
-        // Update existing submission
-        await updateDoc(doc(db, 'submissions', existingSubmission.id), {
-          githubLink,
-          status: 'pending',
-          submittedAt: serverTimestamp()
-        });
-      } else {
-        // Create new submission
-        await addDoc(collection(db, 'submissions'), submissionData);
-        
-        // Update user's project count only for new submissions
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          'progress.projectsSubmitted': increment(1)
-        });
-      }
+      // Debug log
+      console.log('Creating submission:', submission);
+
+      const submissionRef = await addDoc(collection(db, 'submissions'), submission);
+      console.log('Submission created with ID:', submissionRef.id);
+      
+      // Update user's project count
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        'progress.projectsSubmitted': increment(1)
+      });
 
       setShowProjectDialog(false);
-    } catch (err) {
-      console.error('Error submitting project:', err);
+      // Show success message
+      setSuccess('Project submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting project:', error);
       setError('Failed to submit project. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -300,8 +295,10 @@ const CoursePage = () => {
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
       
-      {/* Course Title Section */}
-      <Container maxWidth="lg" sx={{ mt: 10, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
+        <BackButton />
+        
+        {/* Course Title Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -625,6 +622,23 @@ const CoursePage = () => {
           onClose={() => setError(null)}
         >
           {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert 
+          severity="success" 
+          sx={{ 
+            position: 'fixed', 
+            bottom: 16, 
+            left: '50%', 
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            boxShadow: 3
+          }}
+          onClose={() => setSuccess(null)}
+        >
+          {success}
         </Alert>
       )}
 

@@ -11,7 +11,8 @@ import {
   MenuItem,
   Stack,
   Alert,
-  Button
+  Button,
+  CircularProgress
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
 import Header from '../components/Header';
@@ -20,7 +21,8 @@ import QuizCard from '../components/QuizCard';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '../utils/animations';
 import AnimatedPage from '../components/AnimatedPage';
-import LoadingOverlay from '../components/LoadingOverlay';
+import BackButton from '../components/BackButton';
+import { useAuth } from '../contexts/AuthContext';
 import { useFirebase } from '../hooks/useFirebase';
 
 const DIFFICULTY_LEVELS = [
@@ -30,7 +32,8 @@ const DIFFICULTY_LEVELS = [
 ];
 
 const AllQuizzes = ({ toggleColorMode }) => {
-  const { getQuizzes } = useFirebase();
+  const { getQuizzes, getUserQuizAttempts } = useFirebase();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -38,27 +41,37 @@ const AllQuizzes = ({ toggleColorMode }) => {
   const [quizzes, setQuizzes] = useState([]);
   const [dataFetched, setDataFetched] = useState(false);
   const [error, setError] = useState(null);
-
-  const fetchData = useCallback(async () => {
-    if (dataFetched) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const quizzesData = await getQuizzes();
-      setQuizzes(quizzesData || []);
-      setDataFetched(true);
-    } catch (error) {
-      console.error('Error fetching quizzes:', error);
-      setError('Failed to load quizzes');
-    } finally {
-      setLoading(false);
-    }
-  }, [getQuizzes, dataFetched]);
+  const [userAttempts, setUserAttempts] = useState({});
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let mounted = true;
+
+    const fetchQuizzes = async () => {
+      try {
+        setLoading(true);
+        const data = await getQuizzes();
+        if (mounted) {
+          setQuizzes(data || []);
+          setError(null);
+        }
+      } catch (error) {
+        console.error('Error fetching quizzes:', error);
+        if (mounted) {
+          setError('Failed to load quizzes');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchQuizzes();
+
+    return () => {
+      mounted = false;
+    };
+  }, [getQuizzes]);
 
   useEffect(() => {
     // Force scroll to top when component mounts
@@ -102,94 +115,89 @@ const AllQuizzes = ({ toggleColorMode }) => {
         <Header toggleColorMode={toggleColorMode} />
         
         <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
-          <LoadingOverlay loading={loading} />
-
-          {error && (
-            <Alert 
-              severity="error" 
-              sx={{ mb: 4 }}
-              action={
-                <Button 
-                  color="inherit" 
-                  size="small" 
-                  onClick={handleRefresh}
-                >
-                  Retry
-                </Button>
-              }
-            >
+          <BackButton />
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 4 }}>
               {error}
             </Alert>
-          )}
+          ) : (
+            <Box>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Typography variant="h4" gutterBottom>
+                  All Quizzes
+                </Typography>
 
-          <Box sx={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-            <motion.div variants={fadeInUp}>
-              <Typography variant="h4" gutterBottom>
-                All Quizzes
-              </Typography>
-
-              <Box sx={{ mb: 4 }}>
-                <Stack spacing={2}>
-                  <TextField
-                    fullWidth
-                    placeholder="Search quizzes by title or description..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
-                    }}
-                  />
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <FormControl fullWidth>
-                      <InputLabel>Level</InputLabel>
-                      <Select
-                        value={levelFilter}
-                        label="Level"
-                        onChange={(e) => setLevelFilter(e.target.value)}
-                      >
-                        <MenuItem value="all">All Levels</MenuItem>
-                        {DIFFICULTY_LEVELS.map(level => (
-                          <MenuItem key={level.value} value={level.value}>
-                            {level.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <FormControl fullWidth>
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={statusFilter}
-                        label="Status"
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                      >
-                        <MenuItem value="all">All</MenuItem>
-                        <MenuItem value="active">Active</MenuItem>
-                        <MenuItem value="recent">Recently Expired</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Box>
-                </Stack>
-              </Box>
-
-              <Grid container spacing={3}>
-                {filteredQuizzes.map((quiz) => (
-                  <Grid item xs={12} sm={6} md={4} key={quiz.id}>
-                    <QuizCard 
-                      quiz={quiz}
-                      onStart={() => window.open(quiz.link, '_blank')}
+                <Box sx={{ mb: 4 }}>
+                  <Stack spacing={2}>
+                    <TextField
+                      fullWidth
+                      placeholder="Search quizzes by title or description..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      InputProps={{
+                        startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+                      }}
                     />
-                  </Grid>
-                ))}
-                {filteredQuizzes.length === 0 && (
-                  <Grid item xs={12}>
-                    <Typography variant="body1" color="text.secondary" align="center">
-                      No quizzes found matching your criteria.
-                    </Typography>
-                  </Grid>
-                )}
-              </Grid>
-            </motion.div>
-          </Box>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Level</InputLabel>
+                        <Select
+                          value={levelFilter}
+                          label="Level"
+                          onChange={(e) => setLevelFilter(e.target.value)}
+                        >
+                          <MenuItem value="all">All Levels</MenuItem>
+                          {DIFFICULTY_LEVELS.map(level => (
+                            <MenuItem key={level.value} value={level.value}>
+                              {level.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <FormControl fullWidth>
+                        <InputLabel>Status</InputLabel>
+                        <Select
+                          value={statusFilter}
+                          label="Status"
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                          <MenuItem value="all">All</MenuItem>
+                          <MenuItem value="active">Active</MenuItem>
+                          <MenuItem value="recent">Recently Expired</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </Stack>
+                </Box>
+
+                <Grid container spacing={3}>
+                  {filteredQuizzes.map((quiz) => (
+                    <Grid item xs={12} sm={6} md={4} key={quiz.id}>
+                      <QuizCard 
+                        quiz={quiz}
+                        userAttempt={userAttempts[quiz.id]}
+                      />
+                    </Grid>
+                  ))}
+                  {filteredQuizzes.length === 0 && (
+                    <Grid item xs={12}>
+                      <Typography variant="body1" color="text.secondary" align="center">
+                        No quizzes found matching your criteria.
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </motion.div>
+            </Box>
+          )}
         </Container>
 
         <Footer />

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFirebase } from '../hooks/useFirebase';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Box,
   Container,
@@ -9,7 +10,8 @@ import {
   Tabs,
   CircularProgress,
   Alert,
-  Button
+  Button,
+  Stack
 } from '@mui/material';
 import {
   People,
@@ -22,75 +24,122 @@ import Header from '../components/Header';
 import UserList from '../components/UserList';
 import ProjectReview from '../components/ProjectReview';
 import UserDetailsModal from '../components/UserDetailsModal';
-import { motion } from 'framer-motion';
 import CourseManagement from '../components/admin/CourseManagement';
 import QuizManagement from '../components/admin/QuizManagement';
+import { collection, query, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 const AdminDashboard = ({ toggleColorMode }) => {
   const { getUsers } = useFirebase();
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [users, setUsers] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dataFetched, setDataFetched] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (loading) return; // Prevent multiple fetches
-
     try {
       setLoading(true);
       setError(null);
       
-      const usersData = await getUsers();
-      console.log('Fetched users data:', usersData);
+      // Fetch users and submissions in parallel
+      const [usersData, submissionsSnapshot] = await Promise.all([
+        getUsers(),
+        getDocs(collection(db, 'submissions'))
+      ]);
+
+      setUsers(usersData || []);
       
-      if (Array.isArray(usersData)) {
-        setUsers(usersData);
-      } else {
-        console.error('Users data is not an array:', usersData);
-        setUsers([]);
-      }
-    } catch (err) {
-      console.error('Error fetching admin data:', err);
-      setError('Failed to load data. Please try again.');
-      setUsers([]);
+      const submissionsData = submissionsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setSubmissions(submissionsData);
+
+      setDataFetched(true);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
   }, [getUsers]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!dataFetched) {
+      fetchData();
+    }
+  }, [fetchData, dataFetched]);
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
+  const handleReviewSubmission = async (submissionId, status) => {
+    try {
+      const submissionRef = doc(db, 'submissions', submissionId);
+      await updateDoc(submissionRef, {
+        status,
+        reviewedAt: serverTimestamp(),
+        reviewedBy: {
+          id: currentUser.uid,
+          name: currentUser.displayName
+        }
+      });
+
+      setSubmissions(prev => prev.map(sub => 
+        sub.id === submissionId ? {
+          ...sub,
+          status,
+          reviewedAt: new Date(),
+          reviewedBy: {
+            id: currentUser.uid,
+            name: currentUser.displayName
+          }
+        } : sub
+      ));
+    } catch (error) {
+      console.error('Error updating submission:', error);
+      setError('Failed to update submission');
+    }
   };
 
-  const handleRetry = () => {
-    fetchData();
+  const handleRefresh = () => {
+    setDataFetched(false);
   };
 
   const tabs = [
-    { icon: <People />, label: 'Users', component: <UserList users={users} onViewUser={setSelectedUser} /> },
-    { icon: <School />, label: 'Courses', component: <CourseManagement /> },
-    { icon: <Quiz />, label: 'Quizzes', component: <QuizManagement /> },
-    { icon: <Assignment />, label: 'Submissions', component: <ProjectReview submissions={submissions} onReview={() => {}} /> }
+    {
+      label: 'Users',
+      icon: <People />,
+      component: <UserList users={users} onViewUser={setSelectedUser} />
+    },
+    {
+      label: 'Courses',
+      icon: <School />,
+      component: <CourseManagement />
+    },
+    {
+      label: 'Projects',
+      icon: <Assignment />,
+      component: <ProjectReview submissions={submissions} onReview={handleReviewSubmission} />
+    },
+    {
+      label: 'Quizzes',
+      icon: <Quiz />,
+      component: <QuizManagement />
+    }
   ];
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header toggleColorMode={toggleColorMode} />
       
-      <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
+      <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">
-            Admin Dashboard
-          </Typography>
+          <Typography variant="h4">Admin Dashboard</Typography>
           <Button
             startIcon={<Refresh />}
-            onClick={fetchData}
+            onClick={handleRefresh}
             disabled={loading}
           >
             Refresh
@@ -101,15 +150,7 @@ const AdminDashboard = ({ toggleColorMode }) => {
           <Alert 
             severity="error" 
             sx={{ mb: 4 }}
-            action={
-              <Button 
-                color="inherit" 
-                size="small" 
-                onClick={handleRetry}
-              >
-                Retry
-              </Button>
-            }
+            onClose={() => setError(null)}
           >
             {error}
           </Alert>
@@ -118,25 +159,29 @@ const AdminDashboard = ({ toggleColorMode }) => {
         <Paper sx={{ mb: 4 }}>
           <Tabs
             value={activeTab}
-            onChange={handleTabChange}
+            onChange={(e, newValue) => setActiveTab(newValue)}
             variant="fullWidth"
             indicatorColor="primary"
             textColor="primary"
           >
             {tabs.map((tab, index) => (
-              <Tab 
+              <Tab
                 key={index}
-                icon={tab.icon} 
+                icon={tab.icon}
                 label={tab.label}
               />
             ))}
           </Tabs>
         </Paper>
 
-        <Box sx={{ mt: 3, position: 'relative' }}>
-          <Box sx={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-            {tabs[activeTab].component}
-          </Box>
+        <Box sx={{ position: 'relative' }}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            tabs[activeTab].component
+          )}
         </Box>
       </Container>
 

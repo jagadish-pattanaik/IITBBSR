@@ -4,6 +4,7 @@
 /node_modules
 /.pnp
 .pnp.js
+package-lock.json
 
 # testing
 /coverage
@@ -25,3 +26,6 @@ yarn-error.log*
 
 # Firebase
 serviceAccountKey.json
+firestore.rules
+firebase.json
+firestore.indexes.json

@@ -23,6 +23,7 @@ import AnimatedPage from '../components/AnimatedPage';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useFirebase } from '../hooks/useFirebase';
 import { useNavigate } from 'react-router-dom';
+import BackButton from '../components/BackButton';
 
 const AllCourses = ({ toggleColorMode }) => {
   const navigate = useNavigate();
@@ -90,6 +91,7 @@ const AllCourses = ({ toggleColorMode }) => {
         <Header toggleColorMode={toggleColorMode} />
         
         <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
+          <BackButton />
           <LoadingOverlay loading={loading} />
 
           {error && (

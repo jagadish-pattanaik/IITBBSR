@@ -12,7 +12,8 @@ import {
   Tooltip,
   Button,
   Stack,
-  TextField
+  TextField,
+  CircularProgress
 } from '@mui/material';
 import {
   CheckCircle,
@@ -24,13 +25,15 @@ import {
 import { motion } from 'framer-motion';
 import { useState, useMemo } from 'react';
 
-const ProjectReview = ({ submissions, onReview }) => {
+const ProjectReview = ({ submissions, onReview, loading }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredSubmissions = useMemo(() => {
     return submissions.filter(sub => {
-      const matchesSearch = sub.userName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = searchTerm === '' || 
+        sub.courseTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.projectTitle?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -71,7 +74,7 @@ const ProjectReview = ({ submissions, onReview }) => {
         <Stack spacing={2}>
           <TextField
             fullWidth
-            placeholder="Search by student name..."
+            placeholder="Search by course or project title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -113,126 +116,141 @@ const ProjectReview = ({ submissions, onReview }) => {
       <Typography variant="h6" gutterBottom>
         Project Submissions
       </Typography>
-      <List>
-        {filteredSubmissions.map((submission) => {
-          const statusColor = getStatusColor(submission.status);
-          
-          return (
-            <motion.div
-              key={submission.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <ListItem
-                sx={{
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  mb: 2,
-                  bgcolor: statusColor.bg,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: 2,
-                    transform: 'translateY(-2px)'
-                  }
-                }}
+      {loading ? (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          p: 4 
+        }}>
+          <CircularProgress />
+        </Box>
+      ) : filteredSubmissions.length > 0 ? (
+        <List>
+          {filteredSubmissions.map((submission) => {
+            const statusColor = getStatusColor(submission.status);
+            
+            return (
+              <motion.div
+                key={submission.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
               >
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="subtitle1" fontWeight={600}>
-                        {submission.userName}
-                      </Typography>
-                      <Chip
-                        label={submission.status.toUpperCase()}
-                        color={statusColor.chip}
-                        size="small"
-                        sx={{ 
-                          ml: 2,
-                          fontWeight: 600,
-                          letterSpacing: '0.5px'
-                        }}
-                      />
-                    </Box>
-                  }
-                  secondary={
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Project: <strong>{submission.projectTitle}</strong>
-                      </Typography>
-                      <Button
-                        component={Link}
-                        href={submission.githubLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        startIcon={<GitHub />}
-                        endIcon={<OpenInNew />}
-                        variant="outlined"
-                        size="small"
-                        sx={{ mt: 1 }}
-                      >
-                        View Repository
-                      </Button>
-                    </Box>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="Approve">
-                      <span>
-                        <IconButton
-                          color="success"
-                          onClick={() => onReview(submission.id, 'approved')}
-                          disabled={submission.status !== 'pending'}
-                          sx={{
-                            bgcolor: 'success.lighter',
-                            '&:hover': {
-                              bgcolor: 'success.light'
-                            }
+                <ListItem
+                  sx={{
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    mb: 2,
+                    bgcolor: statusColor.bg,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: 2,
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
+                >
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {submission.courseTitle} - {submission.projectTitle}
+                        </Typography>
+                        <Chip
+                          label={submission.status.toUpperCase()}
+                          color={statusColor.chip}
+                          size="small"
+                          sx={{ 
+                            ml: 2,
+                            fontWeight: 600,
+                            letterSpacing: '0.5px'
                           }}
+                        />
+                      </Box>
+                    }
+                    secondary={
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Submitted: {new Date(submission.submittedAt?.seconds * 1000).toLocaleString()}
+                        </Typography>
+                        {submission.reviewedBy && (
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Reviewed by: {submission.reviewedBy.name} 
+                            {submission.reviewedAt && ` on ${new Date(submission.reviewedAt?.seconds * 1000).toLocaleString()}`}
+                          </Typography>
+                        )}
+                        <Button
+                          component={Link}
+                          href={submission.githubLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          startIcon={<GitHub />}
+                          endIcon={<OpenInNew />}
+                          variant="outlined"
+                          size="small"
+                          sx={{ mt: 1 }}
                         >
-                          <CheckCircle />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="Reject">
-                      <span>
-                        <IconButton
-                          color="error"
-                          onClick={() => onReview(submission.id, 'rejected')}
-                          disabled={submission.status !== 'pending'}
-                          sx={{
-                            bgcolor: 'error.lighter',
-                            '&:hover': {
-                              bgcolor: 'error.light'
-                            }
-                          }}
-                        >
-                          <Cancel />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Box>
-                </ListItemSecondaryAction>
-              </ListItem>
-            </motion.div>
-          );
-        })}
-        {filteredSubmissions.length === 0 && (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
-              py: 4,
-              bgcolor: 'background.default',
-              borderRadius: 2
-            }}
-          >
-            <Typography variant="body1" color="text.secondary">
-              No pending submissions
-            </Typography>
-          </Box>
-        )}
-      </List>
+                          View Repository
+                        </Button>
+                      </Box>
+                    }
+                  />
+                  <ListItemSecondaryAction>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Tooltip title="Approve">
+                        <span>
+                          <IconButton
+                            color="success"
+                            onClick={() => onReview(submission.id, 'approved')}
+                            disabled={submission.status !== 'pending'}
+                            sx={{
+                              bgcolor: 'success.lighter',
+                              '&:hover': {
+                                bgcolor: 'success.light'
+                              }
+                            }}
+                          >
+                            <CheckCircle />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Reject">
+                        <span>
+                          <IconButton
+                            color="error"
+                            onClick={() => onReview(submission.id, 'rejected')}
+                            disabled={submission.status !== 'pending'}
+                            sx={{
+                              bgcolor: 'error.lighter',
+                              '&:hover': {
+                                bgcolor: 'error.light'
+                              }
+                            }}
+                          >
+                            <Cancel />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              </motion.div>
+            );
+          })}
+        </List>
+      ) : (
+        <Box 
+          sx={{ 
+            textAlign: 'center', 
+            py: 4,
+            bgcolor: 'background.default',
+            borderRadius: 2
+          }}
+        >
+          <Typography variant="body1" color="text.secondary">
+            No submissions found
+          </Typography>
+        </Box>
+      )}
     </Paper>
   );
 };

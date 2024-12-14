@@ -13,6 +13,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import QuizSection from './pages/QuizSection';
 import AllCourses from './pages/AllCourses';
 import AllQuizzes from './pages/AllQuizzes';
+import QuizPage from './pages/QuizPage';
+import QuizResult from './pages/QuizResult';
 
 // Import providers and components
 import { AuthProvider } from './contexts/AuthContext';
@@ -131,6 +133,22 @@ function App() {
                     <AllCourses toggleColorMode={toggleColorMode} />
                   </ProtectedRoute>
                 }
+              />
+              <Route 
+                path="/quiz/:quizId" 
+                element={
+                  <ProtectedRoute>
+                    <QuizPage toggleColorMode={toggleColorMode} />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/quiz/:quizId/result/:attemptId" 
+                element={
+                  <ProtectedRoute>
+                    <QuizResult toggleColorMode={toggleColorMode} />
+                  </ProtectedRoute>
+                } 
               />
             </Routes>
           </AnimatePresence>
