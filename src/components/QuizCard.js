@@ -33,11 +33,13 @@ const StyledCard = styled(Card)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.background.paper,
   '&:hover': {
     transform: 'translateY(-4px)',
     boxShadow: theme.palette.mode === 'light'
-      ? '0 8px 24px rgba(140,149,159,0.2)'
-      : '0 8px 24px rgba(0,0,0,0.4)',
+      ? '0 8px 24px rgba(26, 115, 232, 0.15)'
+      : '0 8px 24px rgba(0, 0, 0, 0.4)',
   },
 }));
 
@@ -142,8 +144,13 @@ const QuizCard = ({ quiz, userAttempt }) => {
       <Button
         fullWidth
         variant="contained"
+        color="primary"
         startIcon={<PlayArrow />}
         onClick={() => setShowStartDialog(true)}
+        sx={{
+          color: '#FFFFFF',
+          fontWeight: 500,
+        }}
       >
         Start Quiz
       </Button>

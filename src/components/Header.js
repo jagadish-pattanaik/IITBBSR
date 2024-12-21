@@ -26,11 +26,18 @@ const StyledToolbar = styled(Toolbar)({
 const NavButton = styled(Button)(({ theme }) => ({
   margin: '0 8px',
   padding: '6px 16px',
-  color: theme.palette.text.primary,
+  color: theme.palette.mode === 'light' ? theme.palette.primary.main : theme.palette.primary.light,
   '&:hover': {
     backgroundColor: theme.palette.mode === 'light' 
-      ? 'rgba(208, 215, 222, 0.32)'
-      : 'rgba(48, 54, 61, 0.48)',
+      ? 'rgba(26, 115, 232, 0.04)'
+      : 'rgba(130, 177, 255, 0.08)',
+  },
+  '&.MuiButton-contained': {
+    color: '#FFFFFF',
+    backgroundColor: theme.palette.primary.main,
+    '&:hover': {
+      backgroundColor: theme.palette.primary.dark,
+    },
   },
 }));
 
@@ -235,6 +242,12 @@ const Header = ({ toggleColorMode }) => {
                   color="primary"
                   startIcon={<Logout />}
                   onClick={handleLogout}
+                  sx={{
+                    color: '#FFFFFF',
+                    '&:hover': {
+                      backgroundColor: theme.palette.primary.dark,
+                    },
+                  }}
                 >
                   Logout
                 </NavButton>

@@ -57,32 +57,26 @@ function App() {
         palette: {
           mode,
           primary: {
-            main: mode === 'light' ? '#0969DA' : '#58A6FF',
-            light: mode === 'light' ? '#218BFF' : '#79C0FF',
-            dark: mode === 'light' ? '#0550AE' : '#388BFD',
+            main: mode === 'light' ? '#0047B3' : '#1976D2',
+            light: mode === 'light' ? '#0066FF' : '#409EFF',
+            dark: mode === 'light' ? '#003380' : '#0D47A1',
           },
           secondary: {
-            main: '#FF4500',
-            light: '#FF6B3D',
-            dark: '#CC3700',
+            main: '#F85149',
+            light: '#FF6B6B',
+            dark: '#D32F2F',
           },
           background: {
             default: mode === 'light' ? '#FFFFFF' : '#0D1117',
             paper: mode === 'light' ? '#F6F8FA' : '#161B22',
           },
           text: {
-            primary: mode === 'light' ? '#24292F' : '#C9D1D9',
+            primary: mode === 'light' ? '#24292F' : '#E6EDF3',
             secondary: mode === 'light' ? '#57606A' : '#8B949E',
           },
-          divider: mode === 'light' ? '#D0D7DE' : '#30363D',
-          error: {
-            main: '#CF222E',
-          },
-          success: {
-            main: '#2DA44E',
-          },
-          warning: {
-            main: '#BF8700',
+          action: {
+            active: mode === 'light' ? '#24292F' : '#E6EDF3',
+            hover: mode === 'light' ? 'rgba(0, 71, 179, 0.04)' : 'rgba(25, 118, 210, 0.08)',
           },
         },
         typography: {
@@ -118,14 +112,55 @@ function App() {
                 borderRadius: 6,
                 padding: '6px 16px',
                 transition: 'all 0.2s ease-in-out',
+                textTransform: 'none',
+                fontWeight: 500,
                 '&:hover': {
                   transform: 'translateY(-1px)',
                 },
               },
               contained: {
-                boxShadow: 'none',
+                color: '#FFFFFF',
+                boxShadow: mode === 'light' 
+                  ? '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+                  : '0 1px 3px 0 rgba(0, 0, 0, 0.3)',
                 '&:hover': {
-                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                  boxShadow: mode === 'light'
+                    ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                    : '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
+                },
+              },
+              outlined: {
+                borderWidth: '1.5px',
+                '&:hover': {
+                  borderWidth: '1.5px',
+                },
+              },
+              containedPrimary: {
+                background: mode === 'light'
+                  ? 'linear-gradient(45deg, #0047B3, #0052CC)'
+                  : 'linear-gradient(45deg, #1976D2, #2196F3)',
+                '&:hover': {
+                  background: mode === 'light'
+                    ? 'linear-gradient(45deg, #003380, #0047B3)'
+                    : 'linear-gradient(45deg, #0D47A1, #1976D2)',
+                },
+              },
+              outlinedPrimary: {
+                color: mode === 'light' ? '#0047B3' : '#1976D2',
+                borderColor: mode === 'light' ? '#0047B3' : '#1976D2',
+                '&:hover': {
+                  backgroundColor: mode === 'light' 
+                    ? 'rgba(0, 71, 179, 0.04)' 
+                    : 'rgba(25, 118, 210, 0.08)',
+                  borderColor: mode === 'light' ? '#003380' : '#0D47A1',
+                },
+              },
+              textPrimary: {
+                color: mode === 'light' ? '#0047B3' : '#1976D2',
+                '&:hover': {
+                  backgroundColor: mode === 'light' 
+                    ? 'rgba(0, 71, 179, 0.04)' 
+                    : 'rgba(25, 118, 210, 0.08)',
                 },
               },
             },
@@ -162,6 +197,23 @@ function App() {
               paper: {
                 backgroundColor: mode === 'light' ? '#F6F8FA' : '#161B22',
                 borderRight: `1px solid ${mode === 'light' ? '#D0D7DE' : '#30363D'}`,
+              },
+            },
+          },
+          MuiCssBaseline: {
+            styleOverrides: {
+              body: {
+                overflowX: 'hidden',
+              },
+            },
+          },
+          MuiContainer: {
+            styleOverrides: {
+              root: {
+                '@media (min-width: 600px)': {
+                  paddingLeft: '24px',
+                  paddingRight: '24px',
+                },
               },
             },
           },

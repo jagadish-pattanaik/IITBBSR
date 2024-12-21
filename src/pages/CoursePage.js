@@ -21,7 +21,12 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Stepper,
+  Step,
+  StepLabel,
+  Card,
+  Avatar
 } from '@mui/material';
 import {
   PlayCircleOutline,
@@ -31,7 +36,7 @@ import {
   OpenInNew,
   School
 } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import VideoPlayer from '../components/VideoPlayer';
@@ -51,6 +56,161 @@ import {
 import { db } from '../services/firebase';
 import { Link } from 'react-router-dom';
 import BackButton from '../components/BackButton';
+import { styled } from '@mui/material/styles';
+import LoadingShimmer from '../components/LoadingShimmer';
+
+const CourseContainer = styled(Container)(({ theme }) => ({
+  paddingTop: theme.spacing(8),
+  paddingBottom: theme.spacing(4),
+}));
+
+const ContentSection = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+}));
+
+const ModuleCard = styled(Card)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  border: `1px solid ${theme.palette.divider}`,
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.palette.mode === 'light'
+      ? '0 4px 12px rgba(140,149,159,0.15)'
+      : '0 4px 12px rgba(0,0,0,0.3)',
+  },
+}));
+
+const CustomStepper = styled(Stepper)(({ theme }) => ({
+  '.MuiStepLabel-root': {
+    padding: theme.spacing(1, 2),
+  },
+  '.MuiStepLabel-label': {
+    marginTop: theme.spacing(0.5),
+  },
+  '.MuiStepIcon-root': {
+    color: theme.palette.mode === 'light' 
+      ? theme.palette.grey[300] 
+      : theme.palette.grey[700],
+    '&.Mui-active': {
+      color: theme.palette.primary.main,
+    },
+    '&.Mui-completed': {
+      color: theme.palette.success.main,
+    },
+  },
+}));
+
+const CourseHeader = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  padding: theme.spacing(4, 0),
+  marginBottom: theme.spacing(4),
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '1px',
+    background: theme.palette.divider,
+  },
+}));
+
+const VideoContainer = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  borderRadius: theme.shape.borderRadius,
+  overflow: 'hidden',
+  backgroundColor: theme.palette.mode === 'light' 
+    ? theme.palette.grey[100] 
+    : theme.palette.grey[900],
+  border: `1px solid ${theme.palette.divider}`,
+  '& iframe': {
+    border: 'none',
+  },
+}));
+
+const SidebarCard = styled(Paper)(({ theme }) => ({
+  position: 'sticky',
+  top: '100px',
+  padding: theme.spacing(2),
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.background.paper,
+  height: 'calc(100vh - 120px)',
+  overflowY: 'auto',
+  '&::-webkit-scrollbar': {
+    width: '6px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: theme.palette.mode === 'light'
+      ? theme.palette.grey[300]
+      : theme.palette.grey[700],
+    borderRadius: '3px',
+  },
+}));
+
+const VideoListItem = styled(ListItemButton)(({ theme, isActive, isCompleted }) => ({
+  borderRadius: theme.shape.borderRadius,
+  marginBottom: theme.spacing(1),
+  transition: 'all 0.2s ease',
+  border: `1px solid ${
+    isActive 
+      ? theme.palette.primary.main 
+      : theme.palette.divider
+  }`,
+  backgroundColor: isActive
+    ? theme.palette.primary.main + '10'
+    : isCompleted
+      ? theme.palette.success.main + '10'
+      : 'transparent',
+  '&:hover': {
+    backgroundColor: isActive
+      ? theme.palette.primary.main + '20'
+      : theme.palette.action.hover,
+    transform: 'translateX(4px)',
+  },
+}));
+
+// Define getStatusColor outside
+const getStatusColor = (status, theme) => {
+  switch (status) {
+    case 'approved': return theme.palette.success;
+    case 'rejected': return theme.palette.error;
+    case 'pending': return theme.palette.warning;
+    default: return theme.palette.primary;
+  }
+};
+
+const ProjectCard = styled(Paper)(({ theme, status }) => ({
+  padding: theme.spacing(1.5),
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${getStatusColor(status, theme).main}`,
+  backgroundColor: getStatusColor(status, theme).main + '08',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.shadows[2],
+  }
+}));
+
+const LoadingState = () => (
+  <Grid container spacing={3}>
+    <Grid item xs={12} md={8}>
+      <LoadingShimmer height={400} sx={{ mb: 3 }} />
+      <LoadingShimmer height={60} sx={{ mb: 2 }} />
+      <LoadingShimmer height={40} width="60%" sx={{ mb: 4 }} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <LoadingShimmer height={600} />
+    </Grid>
+  </Grid>
+);
 
 const CoursePage = () => {
   const { courseId } = useParams();
@@ -283,6 +443,72 @@ const CoursePage = () => {
     setTimeout(() => setSelectedVideo(video), 0);
   }, []);
 
+  const checkCourseCompletion = useCallback(async () => {
+    if (!currentUser?.uid || !course) return;
+
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+
+      // Check if all videos are watched
+      const totalVideos = course.videos?.length || 0;
+      const watchedVideos = Object.keys(userData?.completedVideos || {})
+        .filter(key => key.startsWith(`${course.id}_`))
+        .length;
+
+      // Check if all projects are approved
+      const submissionsSnapshot = await getDocs(
+        query(
+          collection(db, 'submissions'),
+          where('userId', '==', currentUser.uid),
+          where('courseId', '==', course.id),
+          where('status', '==', 'approved')
+        )
+      );
+      const approvedProjects = submissionsSnapshot.docs.length;
+      const totalProjects = course.projects?.length || 0;
+
+      // Update course completion status if all videos watched and all projects approved
+      if (watchedVideos === totalVideos && approvedProjects === totalProjects && 
+          totalVideos > 0 && totalProjects > 0) {
+        if (!userData?.completedCourses?.[course.id]) {
+          await updateDoc(userRef, {
+            [`completedCourses.${course.id}`]: serverTimestamp(),
+            'progress.coursesCompleted': increment(1)
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking course completion:', error);
+    }
+  }, [currentUser?.uid, course]);
+
+  // Call checkCourseCompletion when component mounts and when videos/projects are completed
+  useEffect(() => {
+    checkCourseCompletion();
+  }, [checkCourseCompletion]);
+
+  const handleVideoComplete = async (videoId) => {
+    if (!currentUser?.uid) return;
+
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        [`completedVideos.${course.id}_${videoId}`]: serverTimestamp(),
+        'progress.videosWatched': increment(1)
+      });
+
+      // Immediately update local state
+      setCompletedVideos(prev => new Set([...prev, videoId]));
+
+      // Check course completion after video is watched
+      checkCourseCompletion();
+    } catch (error) {
+      console.error('Error updating video progress:', error);
+    }
+  };
+
   if (loading || !course) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -292,287 +518,188 @@ const CoursePage = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Header />
       
-      <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
+      <CourseContainer>
         <BackButton />
         
-        {/* Course Title Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'flex-start',
-            gap: 2,
-            mb: 2
-          }}>
-            <School 
-              sx={{ 
-                fontSize: 32,
-                color: 'primary.main',
-                mt: 1
-              }} 
-            />
-            <Box>
-              <Typography 
-                variant="h4"
-                sx={{ 
-                  fontWeight: 700,
-                  mb: 1,
-                  lineHeight: 1.2
-                }}
-              >
-                {course?.title}
-              </Typography>
-              <Typography 
-                variant="body1"
-                color="text.secondary"
-                sx={{ 
-                  maxWidth: '800px',
-                  lineHeight: 1.6,
-                  mb: 2
-                }}
-              >
-                {course?.description}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                {course?.level && (
-                  <Chip 
-                    label={course.level}
-                    color="primary"
-                    variant="outlined"
-                    size="medium"
-                    sx={{ fontWeight: 500, px: 2 }}
-                  />
-                )}
-                {course?.duration && (
-                  <Chip 
-                    label={course.duration}
-                    color="secondary"
-                    variant="outlined"
-                    size="medium"
-                    sx={{ fontWeight: 500, px: 2 }}
-                  />
-                )}
-              </Box>
-            </Box>
-          </Box>
-        </motion.div>
-
-        {/* Main Content Grid */}
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          {/* Video Player Section */}
-          <Grid item xs={12} md={8}>
-            {selectedVideo ? (
-              <Paper 
-                elevation={3}
-                sx={{ 
-                  p: 2,
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  bgcolor: 'background.paper'
-                }}
-              >
-                <VideoPlayer
-                  key={selectedVideo.id}
-                  videoUrl={selectedVideo.url}
-                  courseId={courseId}
-                  videoId={selectedVideo.id}
-                  onProgress={handleVideoProgress}
-                />
-                <Box sx={{ mt: 2 }}>
-                  <Typography 
-                    variant="h5"
+        {loading ? (
+          <LoadingState />
+        ) : error ? (
+          <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Course Header */}
+            <CourseHeader>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item>
+                  <Avatar
                     sx={{ 
-                      fontWeight: 600,
-                      mb: 1
+                      width: 64, 
+                      height: 64,
+                      bgcolor: 'primary.main',
                     }}
                   >
-                    {selectedVideo.title}
+                    <School fontSize="large" />
+                  </Avatar>
+                </Grid>
+                <Grid item xs>
+                  <Typography variant="h4" gutterBottom>
+                    {course?.title}
                   </Typography>
                   <Typography 
-                    variant="body1"
+                    variant="body1" 
                     color="text.secondary"
-                    sx={{ 
-                      lineHeight: 1.6,
-                      mb: 2
-                    }}
+                    sx={{ maxWidth: 800 }}
                   >
-                    {selectedVideo.description}
+                    {course?.description}
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Chip 
-                      label={`Duration: ${selectedVideo.duration}`}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
+                </Grid>
+              </Grid>
+            </CourseHeader>
+
+            {/* Main Content */}
+            <Grid container spacing={4}>
+              {/* Video Section */}
+              <Grid item xs={12} md={8}>
+                <ContentSection>
+                  <Typography variant="h6" gutterBottom>Course Content</Typography>
+                  <VideoContainer>
+                    <VideoPlayer
+                      key={selectedVideo.id}
+                      videoUrl={selectedVideo.url}
+                      courseId={courseId}
+                      videoId={selectedVideo.id}
+                      onProgress={handleVideoProgress}
+                      onComplete={handleVideoComplete}
                     />
-                    {completedVideos.has(selectedVideo.id) && (
-                      <Chip 
-                        icon={<CheckCircle />}
-                        label="Completed"
-                        color="success"
-                        variant="outlined"
-                        size="small"
-                      />
-                    )}
-                  </Box>
-                </Box>
-              </Paper>
-            ) : (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                <CircularProgress />
-              </Box>
-            )}
-          </Grid>
+                  </VideoContainer>
+                </ContentSection>
+              </Grid>
 
-          {/* Sidebar */}
-          <Grid item xs={12} md={4}>
-            <Paper 
-              sx={{ 
-                p: 2,
-                position: 'sticky',
-                top: '100px',
-                borderRadius: 2
-              }}
-            >
-              <Typography variant="h6" gutterBottom>
-                Course Content
-              </Typography>
-              
-              <List>
-                {course?.videos?.map((video) => (
-                  <ListItem
-                    key={video.id}
-                    disablePadding
-                    sx={{
-                      bgcolor: selectedVideo?.id === video.id ? 'action.selected' : 'transparent',
-                      borderRadius: 1,
-                      mb: 0.5,
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <ListItemButton 
-                      onClick={() => handleVideoSelect(video)}
-                      selected={selectedVideo?.id === video.id}
-                    >
-                      <ListItemIcon>
-                        {completedVideos.has(video.id) ? (
-                          <CheckCircle color="success" />
-                        ) : (
-                          <PlayCircleOutline />
-                        )}
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={video.title}
-                        secondary={video.duration}
-                        primaryTypographyProps={{
-                          fontWeight: selectedVideo?.id === video.id ? 600 : 400
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-
-              <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
-                Projects
-              </Typography>
-              
-              {course?.projects?.map((project) => {
-                const submission = projectSubmissions[project.id];
-                const canSubmit = canSubmitProject(project.id);
-                
-                return (
-                  <motion.div key={project.id}>
-                    <Box sx={{ mb: 2 }}>
-                      <Tooltip 
-                        title={getProjectStatusMessage(submission)}
-                        placement="top"
+              {/* Sidebar */}
+              <Grid item xs={12} md={4}>
+                <ContentSection>
+                  <Typography variant="h6" gutterBottom>Videos</Typography>
+                  <List>
+                    {course?.videos?.map((video) => (
+                      <ListItem
+                        key={video.id}
+                        disablePadding
                       >
-                        <Button
-                          fullWidth
-                          variant={submission?.status === 'approved' ? 'contained' : 'outlined'}
-                          startIcon={<Assignment />}
-                          onClick={() => handleProjectClick(project)}
-                          disabled={!canSubmit && submission?.status === 'approved'}
-                          sx={{
-                            borderRadius: 2,
-                            py: 1.5,
-                            bgcolor: submission?.status === 'approved' ? 'success.main' : 'transparent',
-                            borderColor: submission?.status === 'rejected' ? 'error.main' : 
-                                        submission?.status === 'pending' ? 'warning.main' : 'primary.main',
-                            color: submission?.status === 'approved' ? 'white' : 
-                                   submission?.status === 'rejected' ? 'error.main' :
-                                   submission?.status === 'pending' ? 'warning.main' : 'primary.main',
-                            '&:hover': {
-                              bgcolor: submission?.status === 'approved' ? 'success.dark' : 'transparent',
-                              borderColor: submission?.status === 'rejected' ? 'error.dark' : 
-                                          submission?.status === 'pending' ? 'warning.dark' : 'primary.dark',
-                            }
-                          }}
-                          endIcon={
-                            submission && (
-                              <Chip
-                                size="small"
-                                label={submission.status.toUpperCase()}
-                                color={
-                                  submission.status === 'approved'
-                                    ? 'success'
-                                    : submission.status === 'rejected'
-                                    ? 'error'
-                                    : 'warning'
-                                }
-                                sx={{ 
-                                  fontWeight: 600,
-                                  letterSpacing: '0.5px',
-                                  ml: 1
-                                }}
-                              />
-                            )
-                          }
+                        <VideoListItem
+                          onClick={() => handleVideoSelect(video)}
+                          isActive={selectedVideo?.id === video.id}
+                          isCompleted={completedVideos.has(video.id)}
                         >
-                          {project.title}
-                          {submission?.status === 'approved' && ' (Completed)'}
-                          {submission?.status === 'pending' && ' (Under Review)'}
-                          {submission?.status === 'rejected' && ' (Resubmit)'}
-                        </Button>
-                      </Tooltip>
-                      {submission?.githubLink && (
-                        <Box sx={{ mt: 1, pl: 1 }}>
-                          <Button
-                            component={Link}
-                            href={submission.githubLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            size="small"
-                            startIcon={<GitHub sx={{ fontSize: 16 }} />}
-                            endIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                          <ListItemIcon>
+                            {completedVideos.has(video.id) ? (
+                              <CheckCircle color="success" />
+                            ) : (
+                              <PlayCircleOutline />
+                            )}
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary={video.title}
+                            secondary={video.duration}
+                            primaryTypographyProps={{
+                              fontWeight: selectedVideo?.id === video.id ? 600 : 400
+                            }}
+                          />
+                        </VideoListItem>
+                      </ListItem>
+                    ))}
+                  </List>
+                </ContentSection>
+
+                <ContentSection>
+                  <Typography variant="h6" gutterBottom>Projects</Typography>
+                  {course?.projects?.map((project) => {
+                    const submission = projectSubmissions[project.id];
+                    const canSubmit = canSubmitProject(project.id);
+                    
+                    return (
+                      <motion.div key={project.id}>
+                        <ProjectCard 
+                          status={submission?.status}
+                          onClick={() => handleProjectClick(project)}
+                          sx={{ cursor: canSubmit ? 'pointer' : 'default' }}
+                        >
+                          <Typography 
+                            variant="subtitle2"
+                            sx={{ mb: 0.5 }}
+                          >
+                            {project.title}
+                          </Typography>
+                          <Typography 
+                            variant="caption"
+                            color="text.secondary"
                             sx={{ 
-                              textTransform: 'none',
-                              color: 'text.secondary',
-                              '&:hover': {
-                                color: 'primary.main'
-                              }
+                              mb: 1,
+                              display: 'block',
+                              lineHeight: 1.4
                             }}
                           >
-                            View Submission
-                          </Button>
-                        </Box>
-                      )}
-                    </Box>
-                  </motion.div>
-                );
-              })}
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
+                            {project.description}
+                          </Typography>
+                          {submission?.githubLink && (
+                            <Button
+                              component={Link}
+                              href={submission.githubLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              startIcon={<GitHub sx={{ fontSize: '1rem' }} />}
+                              endIcon={<OpenInNew sx={{ fontSize: '0.875rem' }} />}
+                              size="small"
+                              sx={{ 
+                                py: 0.5,
+                                fontSize: '0.75rem',
+                                minHeight: 24
+                              }}
+                            >
+                              View Submission
+                            </Button>
+                          )}
+                          <Chip
+                            label={
+                              submission?.status === 'approved' ? 'Completed' :
+                              submission?.status === 'pending' ? 'Under Review' :
+                              submission?.status === 'rejected' ? 'Needs Revision' :
+                              'Not Submitted'
+                            }
+                            color={
+                              submission?.status === 'approved' ? 'success' :
+                              submission?.status === 'pending' ? 'warning' :
+                              submission?.status === 'rejected' ? 'error' :
+                              'default'
+                            }
+                            size="small"
+                            sx={{ 
+                              mt: 0.5,
+                              height: 20,
+                              '& .MuiChip-label': {
+                                px: 1,
+                                fontSize: '0.7rem'
+                              }
+                            }}
+                          />
+                        </ProjectCard>
+                      </motion.div>
+                    );
+                  })}
+                </ContentSection>
+              </Grid>
+            </Grid>
+          </motion.div>
+        )}
+      </CourseContainer>
 
+      {/* Project Submission Dialog */}
       <ProjectSubmission
         open={showProjectDialog}
         onClose={() => setShowProjectDialog(false)}
@@ -641,8 +768,6 @@ const CoursePage = () => {
           {success}
         </Alert>
       )}
-
-      <Footer />
     </Box>
   );
 };

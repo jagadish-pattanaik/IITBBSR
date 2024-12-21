@@ -10,7 +10,8 @@ import {
   Button,
   Avatar,
   Alert,
-  Paper
+  Paper,
+  CircularProgress
 } from '@mui/material';
 import {
   OndemandVideo,
@@ -28,7 +29,6 @@ import { staggerContainer, fadeInUp } from '../utils/animations';
 import AnimatedPage from '../components/AnimatedPage';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import LoadingOverlay from '../components/LoadingOverlay';
 import QuizCard from '../components/QuizCard';
 import { styled } from '@mui/material/styles';
 
@@ -67,6 +67,50 @@ const StatsCard = styled(Paper)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
 }));
 
+const StyledLoadingOverlay = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: theme.palette.background.default,
+  zIndex: 1,
+}));
+
+const DashboardWrapper = styled(Box)(({ theme }) => ({
+  minHeight: '100vh',
+  display: 'flex',
+  flexDirection: 'column',
+  position: 'relative',
+  backgroundColor: theme.palette.background.default,
+  width: '100%',
+  overflowX: 'hidden',
+}));
+
+const SectionHeader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: theme.spacing(3),
+  '& .MuiTypography-h5': {
+    fontWeight: 600,
+    position: 'relative',
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      bottom: -8,
+      left: 0,
+      width: 40,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: theme.palette.primary.main,
+    },
+  },
+}));
+
 const Dashboard = ({ toggleColorMode }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -80,13 +124,23 @@ const Dashboard = ({ toggleColorMode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dataFetched, setDataFetched] = useState(false);
+  const [totalVideos, setTotalVideos] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [totalCourses, setTotalCourses] = useState(0);
 
   // Memoize sorted courses
   const sortedCourses = useMemo(() => {
     return courses
       .slice()
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [courses]);
+      .sort((a, b) => {
+        // Put completed courses at the end
+        const aCompleted = currentUser?.completedCourses?.[a.id];
+        const bCompleted = currentUser?.completedCourses?.[b.id];
+        if (aCompleted && !bCompleted) return 1;
+        if (!aCompleted && bCompleted) return -1;
+        return (a.order || 0) - (b.order || 0);
+      });
+  }, [courses, currentUser?.completedCourses]);
 
   const fetchData = useCallback(async () => {
     if (!currentUser?.uid || dataFetched) return;
@@ -102,10 +156,24 @@ const Dashboard = ({ toggleColorMode }) => {
       ]);
 
       const userData = userDoc.data();
+      
+      // Calculate totals from all courses
+      let videosCount = 0;
+      let projectsCount = 0;
+      coursesData.forEach(course => {
+        videosCount += course.videos?.length || 0;
+        projectsCount += course.projects?.length || 0;
+      });
+
+      setTotalVideos(videosCount);
+      setTotalProjects(projectsCount);
+      setTotalCourses(coursesData.length);
+
       if (userData?.progress) {
         setUserProgress({
           videosWatched: userData.progress.videosWatched || 0,
-          projectsSubmitted: userData.progress.projectsSubmitted || 0
+          projectsSubmitted: userData.progress.projectsSubmitted || 0,
+          coursesCompleted: Object.keys(userData.completedCourses || {}).length || 0
         });
       }
 
@@ -114,7 +182,6 @@ const Dashboard = ({ toggleColorMode }) => {
       }
 
       if (Array.isArray(quizzesData)) {
-        // Filter out expired quizzes
         const activeQuizzes = quizzesData.filter(quiz => 
           new Date(quiz.endTime) > new Date()
         );
@@ -148,11 +215,25 @@ const Dashboard = ({ toggleColorMode }) => {
 
   return (
     <AnimatedPage>
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <DashboardWrapper>
         <Header toggleColorMode={toggleColorMode} />
         
-        <DashboardContainer maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
-          <LoadingOverlay loading={loading} />
+        <DashboardContainer 
+          maxWidth="lg" 
+          sx={{ 
+            mt: 12, 
+            mb: 4, 
+            flex: 1, 
+            position: 'relative',
+            opacity: loading ? 0.6 : 1,
+            transition: 'opacity 0.3s ease'
+          }}
+        >
+          {loading && (
+            <StyledLoadingOverlay>
+              <CircularProgress />
+            </StyledLoadingOverlay>
+          )}
 
           {error && (
             <Alert 
@@ -176,19 +257,38 @@ const Dashboard = ({ toggleColorMode }) => {
           )}
 
           <Box sx={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
-            {/* User Profile Section */}
-            <motion.div variants={fadeInUp}>
-              <Box sx={{ mb: 6 }}>
+            {/* User Profile Section with animation */}
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Box sx={{ 
+                mb: 6, 
+                p: 3, 
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+              }}>
                 <Grid container spacing={3} alignItems="center">
                   <Grid item>
-                    <Avatar
-                      src={currentUser?.photoURL}
-                      alt={currentUser?.displayName}
-                      sx={{ width: 80, height: 80 }}
-                    />
+                    <motion.div whileHover={{ scale: 1.1 }}>
+                      <Avatar
+                        src={currentUser?.photoURL}
+                        alt={currentUser?.displayName}
+                        sx={{ 
+                          width: 80, 
+                          height: 80,
+                          border: 3,
+                          borderColor: 'primary.main',
+                        }}
+                      />
+                    </motion.div>
                   </Grid>
                   <Grid item xs>
-                    <Typography variant="h4">
+                    <Typography variant="h4" gutterBottom>
                       Welcome back, {currentUser?.displayName}!
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
@@ -200,119 +300,110 @@ const Dashboard = ({ toggleColorMode }) => {
             </motion.div>
 
             {/* Progress Section */}
-            <motion.div variants={staggerContainer} initial="initial" animate="animate">
-              <Typography variant="h5" gutterBottom>
-                Your Progress
-              </Typography>
-              <Grid container spacing={3} sx={{ mb: 6 }}>
-                <Grid item xs={12} sm={6} md={4}>
-                  <ProgressCard
-                    title="Videos Watched"
-                    value={userProgress.videosWatched}
-                    total={30}
-                    icon={<OndemandVideo fontSize="large" />}
-                    color="#0000CB"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <ProgressCard
-                    title="Projects Submitted"
-                    value={userProgress.projectsSubmitted}
-                    total={10}
-                    icon={<Assignment fontSize="large" />}
-                    color="#FF4500"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <ProgressCard
-                    title="Courses Completed"
-                    value={userProgress.coursesCompleted || 0}
-                    total={5}
-                    icon={<School fontSize="large" />}
-                    color="#00C853"
-                  />
-                </Grid>
+            <SectionHeader>
+              <Typography variant="h5">Your Progress</Typography>
+            </SectionHeader>
+            <Grid container spacing={3} sx={{ mb: 6 }}>
+              <Grid item xs={12} sm={6} md={4}>
+                <ProgressCard
+                  title="Videos Watched"
+                  value={userProgress.videosWatched}
+                  total={totalVideos}
+                  icon={<OndemandVideo fontSize="large" />}
+                  color="#0000CB"
+                />
               </Grid>
-            </motion.div>
+              <Grid item xs={12} sm={6} md={4}>
+                <ProgressCard
+                  title="Projects Submitted"
+                  value={userProgress.projectsSubmitted}
+                  total={totalProjects}
+                  icon={<Assignment fontSize="large" />}
+                  color="#FF4500"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <ProgressCard
+                  title="Courses Completed"
+                  value={userProgress.coursesCompleted}
+                  total={totalCourses}
+                  icon={<School fontSize="large" />}
+                  color="#00C853"
+                />
+              </Grid>
+            </Grid>
 
             {/* Courses Section */}
-            <motion.div variants={fadeInUp}>
-              <Box sx={{ mb: 6 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <Typography variant="h5">
-                    Your Courses
+            <SectionHeader>
+              <Typography variant="h5">Your Courses</Typography>
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Button
+                  endIcon={<ArrowForward />}
+                  onClick={() => navigate('/courses')}
+                  variant="outlined"
+                  color="primary"
+                >
+                  View All
+                </Button>
+              </motion.div>
+            </SectionHeader>
+            <Grid container spacing={3} sx={{ mb: 6 }}>
+              {sortedCourses.length > 0 ? (
+                sortedCourses.map((course) => (
+                  <Grid item xs={12} sm={6} md={4} key={course.id}>
+                    <CourseCard
+                      course={course}
+                      onClick={() => navigate(`/course/${course.id}`)}
+                      isCompleted={currentUser?.completedCourses?.[course.id]}
+                    />
+                  </Grid>
+                ))
+              ) : (
+                <Grid item xs={12}>
+                  <Typography variant="body1" color="text.secondary" align="center">
+                    No courses available at the moment.
                   </Typography>
-                  <Button
-                    endIcon={<ArrowForward />}
-                    onClick={() => navigate('/courses')}
-                    variant="outlined"
-                    color="primary"
-                  >
-                    View All
-                  </Button>
-                </Box>
-                <Grid container spacing={3}>
-                  {sortedCourses.length > 0 ? (
-                    sortedCourses.map((course) => (
-                      <Grid item xs={12} sm={6} md={4} key={course.id}>
-                        <CourseCard
-                          course={course}
-                          onClick={() => navigate(`/course/${course.id}`)}
-                        />
-                      </Grid>
-                    ))
-                  ) : (
-                    <Grid item xs={12}>
-                      <Typography variant="body1" color="text.secondary" align="center">
-                        No courses available at the moment.
-                      </Typography>
-                    </Grid>
-                  )}
                 </Grid>
-              </Box>
-            </motion.div>
+              )}
+            </Grid>
 
             {/* Quizzes Section */}
-            <motion.div variants={fadeInUp}>
-              <Box sx={{ mb: 6 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <Typography variant="h5">
-                    Quizzes
+            <SectionHeader>
+              <Typography variant="h5">Active Quizzes</Typography>
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Button
+                  endIcon={<ArrowForward />}
+                  onClick={() => navigate('/quizzes')}
+                  variant="outlined"
+                  color="primary"
+                >
+                  View All
+                </Button>
+              </motion.div>
+            </SectionHeader>
+            <Grid container spacing={3}>
+              {filteredQuizzes.length > 0 ? (
+                filteredQuizzes.map((quiz) => (
+                  <Grid item xs={12} sm={6} md={4} key={quiz.id}>
+                    <QuizCard
+                      quiz={quiz}
+                      onStart={() => window.open(quiz.link, '_blank')}
+                    />
+                  </Grid>
+                ))
+              ) : (
+                <Grid item xs={12}>
+                  <Typography variant="body1" color="text.secondary" align="center">
+                    No active or recent quizzes at the moment.
                   </Typography>
-                  <Button
-                    endIcon={<ArrowForward />}
-                    onClick={() => navigate('/quizzes')}
-                    variant="outlined"
-                    color="primary"
-                  >
-                    View All
-                  </Button>
-                </Box>
-                <Grid container spacing={3}>
-                  {filteredQuizzes.length > 0 ? (
-                    filteredQuizzes.map((quiz) => (
-                      <Grid item xs={12} sm={6} md={4} key={quiz.id}>
-                        <QuizCard
-                          quiz={quiz}
-                          onStart={() => window.open(quiz.link, '_blank')}
-                        />
-                      </Grid>
-                    ))
-                  ) : (
-                    <Grid item xs={12}>
-                      <Typography variant="body1" color="text.secondary" align="center">
-                        No active or recent quizzes at the moment.
-                      </Typography>
-                    </Grid>
-                  )}
                 </Grid>
-              </Box>
-            </motion.div>
+              )}
+            </Grid>
           </Box>
         </DashboardContainer>
 
         <Footer />
-      </Box>
+      </DashboardWrapper>
     </AnimatedPage>
   );
 };

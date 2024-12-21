@@ -21,6 +21,89 @@ import {
 import { CheckCircle, Cancel, EmojiEvents } from '@mui/icons-material';
 import Header from '../components/Header';
 import BackButton from '../components/BackButton';
+import { styled } from '@mui/material/styles';
+import { motion } from 'framer-motion';
+import LoadingShimmer from '../components/LoadingShimmer';
+
+const ResultContainer = styled(Container)(({ theme }) => ({
+  paddingTop: theme.spacing(12),
+  paddingBottom: theme.spacing(8),
+}));
+
+const ResultCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: `linear-gradient(90deg, 
+      ${theme.palette.primary.main}, 
+      ${theme.palette.primary.light})`,
+  },
+}));
+
+const ScoreDisplay = styled(Box)(({ theme, score }) => ({
+  textAlign: 'center',
+  padding: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: score >= 70 
+    ? theme.palette.success.main + '20'
+    : score >= 40 
+      ? theme.palette.warning.main + '20'
+      : theme.palette.error.main + '20',
+  border: `1px solid ${
+    score >= 70 
+      ? theme.palette.success.main 
+      : score >= 40 
+        ? theme.palette.warning.main
+        : theme.palette.error.main
+  }`,
+}));
+
+const QuestionReview = styled(Paper)(({ theme, isCorrect }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(2),
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: isCorrect 
+    ? theme.palette.success.main + '10'
+    : theme.palette.error.main + '10',
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '4px',
+    height: '100%',
+    background: isCorrect 
+      ? theme.palette.success.main
+      : theme.palette.error.main,
+  },
+}));
+
+const LoadingState = () => (
+  <Box sx={{ width: '100%' }}>
+    <Box sx={{ mb: 4 }}>
+      <LoadingShimmer height={200} />
+    </Box>
+    <Box sx={{ mb: 3 }}>
+      <LoadingShimmer height={60} />
+    </Box>
+    {[...Array(5)].map((_, i) => (
+      <Box key={i} sx={{ mb: 2 }}>
+        <LoadingShimmer height={120} />
+      </Box>
+    ))}
+  </Box>
+);
 
 const QuizResult = () => {
   const { quizId, attemptId } = useParams();

@@ -22,7 +22,8 @@ import {
   ListItemText,
   ListItemIcon,
   Alert,
-  TextField
+  TextField,
+  CircularProgress
 } from '@mui/material';
 import {
   Timer,
@@ -32,16 +33,47 @@ import {
   CheckCircle,
   RadioButtonUnchecked,
   Preview,
-  Send
+  Send,
+  InfoOutlined
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { styled } from '@mui/material/styles';
+import { AnimatePresence } from 'framer-motion';
+import { addDoc, collection, doc, serverTimestamp, updateDoc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: theme.palette.background.paper,
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+    '&.Mui-focused': {
+      backgroundColor: theme.palette.background.paper,
+      '& .MuiOutlinedInput-notchedOutline': {
+        borderColor: theme.palette.primary.main,
+        borderWidth: 2,
+      },
+    },
+  },
+  '& .MuiFormHelperText-root': {
+    marginLeft: 0,
+    marginTop: theme.spacing(1),
+  },
+}));
 
 const QuestionDisplay = ({ question, userAnswer, onAnswer, showFeedback = false }) => {
   const handleTextAnswer = (value) => {
     if (question.type === 'number') {
-      // Only allow numeric input
+      // Allow only numeric input including decimals and negative numbers
       const numValue = value.replace(/[^0-9.-]/g, '');
+      // Prevent multiple decimal points
+      const parts = numValue.split('.');
+      if (parts.length > 2) return;
+      // Prevent multiple negative signs
+      if (numValue.split('-').length > 2) return;
       onAnswer(numValue);
     } else {
       onAnswer(value);
@@ -52,53 +84,111 @@ const QuestionDisplay = ({ question, userAnswer, onAnswer, showFeedback = false 
     case 'mcq':
     case 'boolean':
       return (
-        <RadioGroup
-          value={userAnswer || ''}
-          onChange={(e) => onAnswer(e.target.value)}
-        >
+        <Box sx={{ mt: 3 }}>
           {question.options.map((option, index) => (
-            <FormControlLabel
+            <OptionButton
               key={index}
-              value={option.text}
-              control={<Radio />}
-              label={option.text}
-            />
+              fullWidth
+              variant={userAnswer === option.text ? 'contained' : 'outlined'}
+              onClick={() => onAnswer(option.text)}
+              isSelected={userAnswer === option.text}
+              sx={{ mb: 2 }}
+            >
+              {option.text}
+            </OptionButton>
           ))}
-        </RadioGroup>
+        </Box>
       );
 
     case 'text':
       return (
-        <TextField
-          fullWidth
-          multiline
-          rows={2}
-          variant="outlined"
-          label="Your Answer"
-          value={userAnswer || ''}
-          onChange={(e) => handleTextAnswer(e.target.value)}
-          placeholder="Type your answer here..."
-          helperText={question.caseSensitive ? "Note: Answer is case-sensitive" : ""}
-        />
+        <Box sx={{ mt: 3 }}>
+          <StyledTextField
+            fullWidth
+            multiline
+            rows={4}
+            variant="outlined"
+            label="Your Answer"
+            value={userAnswer || ''}
+            onChange={(e) => handleTextAnswer(e.target.value)}
+            placeholder="Type your answer here..."
+            helperText={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {question.caseSensitive && (
+                  <Typography 
+                    variant="caption" 
+                    color="warning.main"
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 0.5 
+                    }}
+                  >
+                    <InfoOutlined fontSize="small" />
+                    Answer is case-sensitive
+                  </Typography>
+                )}
+              </Box>
+            }
+            InputProps={{
+              sx: {
+                fontFamily: 'monospace',
+                minHeight: '100px',
+                '& .MuiOutlinedInput-input': {
+                  height: '100%',
+                },
+              },
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                height: 'auto',
+              },
+            }}
+          />
+        </Box>
       );
 
     case 'number':
       return (
-        <TextField
-          fullWidth
-          type="number"
-          variant="outlined"
-          label="Your Answer"
-          value={userAnswer || ''}
-          onChange={(e) => handleTextAnswer(e.target.value)}
-          placeholder="Enter a number..."
-          helperText={`Tolerance: ±${question.tolerance * 100}%`}
-          InputProps={{
-            inputProps: { 
-              step: 'any' // Allow decimal numbers
+        <Box sx={{ mt: 3 }}>
+          <StyledTextField
+            fullWidth
+            type="text" // Changed from "number" to allow better control
+            variant="outlined"
+            label="Your Answer"
+            value={userAnswer || ''}
+            onChange={(e) => handleTextAnswer(e.target.value)}
+            placeholder="Enter a number..."
+            helperText={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography 
+                  variant="caption" 
+                  color="info.main"
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 0.5 
+                  }}
+                >
+                  <InfoOutlined fontSize="small" />
+                  Tolerance: ±{question.tolerance * 100}%
+                </Typography>
+              </Box>
             }
-          }}
-        />
+            InputProps={{
+              sx: {
+                fontFamily: 'monospace',
+                fontSize: '1.1rem',
+                '& input': {
+                  padding: '12px 14px',
+                },
+              },
+            }}
+            sx={{
+              maxWidth: '300px',
+            }}
+          />
+        </Box>
       );
 
     default:
@@ -147,6 +237,106 @@ const NavigationButtons = styled(Box)(({ theme }) => ({
   },
 }));
 
+const QuizContainer = styled(Box)(({ theme }) => ({
+  minHeight: '100vh',
+  backgroundColor: theme.palette.background.default,
+}));
+
+const QuizHeader = styled(Box)(({ theme }) => ({
+  position: 'sticky',
+  top: 0,
+  zIndex: 1100,
+  backgroundColor: theme.palette.background.paper,
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  backdropFilter: 'blur(8px)',
+  transition: 'all 0.3s ease',
+}));
+
+const QuestionCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+  transition: 'all 0.3s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: theme.palette.primary.main,
+    opacity: 0.8,
+  },
+}));
+
+const OptionButton = styled(Button)(({ theme, isSelected, isCorrect, isWrong }) => ({
+  width: '100%',
+  justifyContent: 'flex-start',
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.shape.borderRadius,
+  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: isSelected 
+    ? theme.palette.primary.main + '20'
+    : theme.palette.background.paper,
+  color: theme.palette.text.primary,
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: isSelected 
+      ? theme.palette.primary.main + '30'
+      : theme.palette.action.hover,
+    transform: 'translateX(4px)',
+  },
+  ...(isCorrect && {
+    borderColor: theme.palette.success.main,
+    backgroundColor: theme.palette.success.main + '20',
+  }),
+  ...(isWrong && {
+    borderColor: theme.palette.error.main,
+    backgroundColor: theme.palette.error.main + '20',
+  }),
+}));
+
+const TimerDisplay = styled(Box)(({ theme, timeLeft }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+  padding: theme.spacing(1, 2),
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: timeLeft <= 60 
+    ? theme.palette.error.main + '20'
+    : timeLeft <= 300 
+      ? theme.palette.warning.main + '20'
+      : theme.palette.primary.main + '20',
+  color: timeLeft <= 60 
+    ? theme.palette.error.main
+    : timeLeft <= 300 
+      ? theme.palette.warning.main
+      : theme.palette.primary.main,
+  transition: 'all 0.3s ease',
+}));
+
+const ProgressBar = styled(LinearProgress)(({ theme }) => ({
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: theme.palette.mode === 'light'
+    ? theme.palette.grey[200]
+    : theme.palette.grey[800],
+  '.MuiLinearProgress-bar': {
+    borderRadius: 3,
+    backgroundImage: `linear-gradient(45deg, 
+      ${theme.palette.primary.main}, 
+      ${theme.palette.primary.light})`,
+  },
+}));
+
+const QuestionContainer = styled(motion.div)({
+  width: '100%',
+});
+
 const QuizTakingInterface = ({ quiz, onSubmit }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -156,6 +346,9 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
   const [showReview, setShowReview] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const [timeWarningType, setTimeWarningType] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { currentUser } = useAuth();
 
   // Timer countdown
   useEffect(() => {
@@ -233,11 +426,113 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
     });
   };
 
-  const handleSubmit = () => {
-    onSubmit({
-      answers,
-      timeSpent: quiz.duration * 60 - timeLeft
-    });
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      
+      const submissionTime = new Date().toISOString();
+      const currentTime = new Date();
+      
+      // Format answers for submission
+      const formattedAnswers = {};
+      Object.keys(answers).forEach(questionId => {
+        formattedAnswers[questionId] = {
+          answer: answers[questionId],
+          timestamp: submissionTime
+        };
+      });
+
+      // Calculate score
+      let score = 0;
+      quiz.questions.forEach(question => {
+        const userAnswer = answers[question.id];
+        if (question.type === 'mcq' || question.type === 'boolean') {
+          const correctOption = question.options.find(opt => opt.isCorrect);
+          if (correctOption && userAnswer === correctOption.text) {
+            score += question.points || 1;
+          }
+        }
+      });
+
+      // Create submission document
+      const submissionData = {
+        quizId: quiz.id,
+        userId: currentUser.uid,
+        userName: currentUser.displayName,
+        answers: formattedAnswers,
+        timeSpent: quiz.duration * 60 - timeLeft,
+        score,
+        submittedAt: serverTimestamp(),
+        totalPoints: quiz.totalPoints || quiz.questions.reduce((acc, q) => acc + (q.points || 1), 0)
+      };
+
+      const submissionRef = await addDoc(collection(db, 'quiz_submissions'), submissionData);
+
+      // Update user's quiz attempts
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        [`quizAttempts.${quiz.id}`]: {
+          submissionId: submissionRef.id,
+          submittedAt: serverTimestamp(),
+          score
+        }
+      });
+
+      // Update quiz leaderboard
+      const leaderboardRef = doc(db, 'quizLeaderboard', quiz.id);
+      const leaderboardDoc = await getDoc(leaderboardRef);
+
+      const leaderboardEntry = {
+        userId: currentUser.uid,
+        userName: currentUser.displayName,
+        score,
+        timeSpent: quiz.duration * 60 - timeLeft,
+        submittedAt: submissionTime,
+        timestamp: currentTime.getTime() // Use numeric timestamp for sorting
+      };
+
+      if (!leaderboardDoc.exists()) {
+        // Create new leaderboard if it doesn't exist
+        await setDoc(leaderboardRef, {
+          entries: [leaderboardEntry],
+          lastUpdated: serverTimestamp()
+        });
+      } else {
+        // Get existing entries
+        const existingEntries = leaderboardDoc.data().entries || [];
+        
+        // Remove any previous entry from this user
+        const filteredEntries = existingEntries.filter(entry => entry.userId !== currentUser.uid);
+        
+        // Add new entry
+        const newEntries = [...filteredEntries, leaderboardEntry]
+          // Sort by score (descending) and time (ascending)
+          .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.timeSpent - b.timeSpent;
+          })
+          // Keep only top 100 entries
+          .slice(0, 100);
+
+        // Update leaderboard
+        await updateDoc(leaderboardRef, {
+          entries: newEntries,
+          lastUpdated: serverTimestamp()
+        });
+      }
+
+      // Clear local storage
+      localStorage.removeItem(`quiz_${quiz.id}_answers`);
+
+      // Call the onSubmit callback with the submission data
+      onSubmit(submissionData);
+
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+      setError('Failed to submit quiz. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderTimeWarningDialog = () => {
@@ -377,8 +672,10 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
             variant="contained" 
             color="primary"
             onClick={handleSubmit}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <Send />}
           >
-            Submit Quiz
+            {loading ? 'Submitting...' : 'Submit Quiz'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -474,46 +771,64 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
 
       {/* Main Question Content */}
       <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 3, py: 4 }}>
-        <QuestionPaper>
-          <Typography variant="h6" gutterBottom>
-            {quiz.questions[currentQuestion].text}
-          </Typography>
-
-          <Box sx={{ mb: 3 }}>
-            <QuestionDisplay
-              question={quiz.questions[currentQuestion]}
-              userAnswer={answers[quiz.questions[currentQuestion].id]}
-              onAnswer={(answer) => handleAnswer(quiz.questions[currentQuestion].id, answer)}
-            />
-          </Box>
-
-          <NavigationButtons>
-            <Button
-              startIcon={<NavigateBefore />}
-              onClick={() => setCurrentQuestion(prev => prev - 1)}
-              disabled={currentQuestion === 0}
-            >
-              Previous
-            </Button>
-            {currentQuestion === quiz.questions.length - 1 ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setShowConfirmSubmit(true)}
+        <AnimatePresence mode="wait">
+          <QuestionContainer
+            key={currentQuestion}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <QuestionCard>
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  mb: 3,
+                }}
               >
-                Submit Quiz
-              </Button>
-            ) : (
-              <Button
-                endIcon={<NavigateNext />}
-                variant="contained"
-                onClick={() => setCurrentQuestion(prev => prev + 1)}
-              >
-                Next
-              </Button>
-            )}
-          </NavigationButtons>
-        </QuestionPaper>
+                {quiz.questions[currentQuestion].text}
+              </Typography>
+
+              <QuestionDisplay
+                question={quiz.questions[currentQuestion]}
+                userAnswer={answers[quiz.questions[currentQuestion].id]}
+                onAnswer={(answer) => handleAnswer(quiz.questions[currentQuestion].id, answer)}
+              />
+
+              <NavigationButtons>
+                <Button
+                  startIcon={<NavigateBefore />}
+                  onClick={() => setCurrentQuestion(prev => prev - 1)}
+                  disabled={currentQuestion === 0}
+                  variant="outlined"
+                >
+                  Previous
+                </Button>
+                {currentQuestion === quiz.questions.length - 1 ? (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setShowConfirmSubmit(true)}
+                    endIcon={<Send />}
+                  >
+                    Submit Quiz
+                  </Button>
+                ) : (
+                  <Button
+                    endIcon={<NavigateNext />}
+                    variant="contained"
+                    onClick={() => setCurrentQuestion(prev => prev + 1)}
+                  >
+                    Next
+                  </Button>
+                )}
+              </NavigationButtons>
+            </QuestionCard>
+          </QuestionContainer>
+        </AnimatePresence>
       </Box>
 
       {/* Question Review Drawer */}
@@ -573,6 +888,23 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
       {/* Render Dialogs */}
       {renderTimeWarningDialog()}
       {renderConfirmDialog()}
+
+      {/* Error display */}
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ 
+            position: 'fixed', 
+            bottom: 16, 
+            left: '50%', 
+            transform: 'translateX(-50%)',
+            zIndex: 1000 
+          }}
+          onClose={() => setError(null)}
+        >
+          {error}
+        </Alert>
+      )}
     </Box>
   );
 };

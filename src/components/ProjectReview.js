@@ -1,257 +1,418 @@
+import { useState } from 'react';
 import {
   Box,
   Paper,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
+  Grid,
   Chip,
-  Link,
-  Tooltip,
   Button,
-  Stack,
   TextField,
-  CircularProgress
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Avatar,
+  Link,
+  TablePagination,
+  InputAdornment,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import {
   CheckCircle,
   Cancel,
   GitHub,
   OpenInNew,
-  Search
+  AccessTime,
+  Person,
+  School,
+  Search,
 } from '@mui/icons-material';
-import { motion } from 'framer-motion';
-import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const ProjectReview = ({ submissions, onReview, loading }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-
-  const filteredSubmissions = useMemo(() => {
-    return submissions.filter(sub => {
-      const matchesSearch = searchTerm === '' || 
-        sub.courseTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.projectTitle?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [submissions, searchTerm, statusFilter]);
-
-  const getStatusColor = (status) => {
+const ReviewCard = styled(Paper)(({ theme, status }) => {
+  const getStatusColor = () => {
     switch (status) {
-      case 'pending':
-        return {
-          chip: 'warning',
-          bg: 'warning.lighter',
-          color: 'warning.dark'
-        };
-      case 'approved':
-        return {
-          chip: 'success',
-          bg: 'success.lighter',
-          color: 'success.dark'
-        };
-      case 'rejected':
-        return {
-          chip: 'error',
-          bg: 'error.lighter',
-          color: 'error.dark'
-        };
-      default:
-        return {
-          chip: 'default',
-          bg: 'grey.100',
-          color: 'text.secondary'
-        };
+      case 'approved': return theme.palette.success;
+      case 'rejected': return theme.palette.error;
+      case 'pending': return theme.palette.warning;
+      default: return theme.palette.primary;
     }
   };
 
+        return {
+    padding: theme.spacing(1.5),
+    marginBottom: theme.spacing(1.5),
+    borderRadius: theme.shape.borderRadius,
+    border: `1px solid ${getStatusColor().main}`,
+    backgroundColor: theme.palette.background.paper,
+    position: 'relative',
+    overflow: 'hidden',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '4px',
+      height: '100%',
+      background: getStatusColor().main,
+    },
+  };
+});
+
+const StatusChip = styled(Chip)(({ theme, status }) => {
+  const getColor = () => {
+    switch (status) {
+      case 'approved': return theme.palette.success;
+      case 'rejected': return theme.palette.error;
+      case 'pending': return theme.palette.warning;
+      default: return theme.palette.primary;
+    }
+  };
+
+  return {
+    backgroundColor: getColor().main + '20',
+    color: getColor().main,
+    border: `1px solid ${getColor().main}`,
+    fontWeight: 500,
+    size: 'small',
+    '& .MuiChip-label': {
+      fontSize: '0.75rem',
+    },
+  };
+});
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  minWidth: 100,
+  padding: theme.spacing(0.5, 2),
+  '& .MuiSvgIcon-root': {
+    fontSize: '1.2rem',
+  },
+}));
+
+const StatsCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(2),
+  textAlign: 'center',
+  height: '100%',
+  '& .MuiTypography-h5': {
+    fontSize: '1.5rem',
+    fontWeight: 600,
+  },
+}));
+
+const FilterBar = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  gap: theme.spacing(2),
+  marginBottom: theme.spacing(3),
+  '& .MuiTextField-root, & .MuiFormControl-root': {
+    backgroundColor: theme.palette.background.paper,
+  },
+  '& .MuiOutlinedInput-root': {
+    borderRadius: theme.shape.borderRadius,
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+    '&.Mui-focused': {
+      backgroundColor: theme.palette.background.paper,
+    },
+  },
+  [theme.breakpoints.down('sm')]: {
+    flexDirection: 'column',
+  },
+}));
+
+const ProjectReview = ({ submissions, onReview }) => {
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [feedback, setFeedback] = useState('');
+  const [showDialog, setShowDialog] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  const handleReview = (status) => {
+    onReview(selectedSubmission.id, status, feedback);
+    setShowDialog(false);
+    setFeedback('');
+    setSelectedSubmission(null);
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const filteredSubmissions = submissions
+    .filter(submission => {
+      const matchesSearch = (submission.projectTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           submission.courseTitle?.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = filterStatus === 'all' || submission.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'date') {
+        return b.submittedAt?.seconds - a.submittedAt?.seconds;
+      }
+      return a.projectTitle?.localeCompare(b.projectTitle);
+    });
+
   return (
-    <Paper sx={{ p: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <Stack spacing={2}>
+    <Box>
+      <FilterBar>
           <TextField
-            fullWidth
-            placeholder="Search by course or project title..."
+          size="small"
+          placeholder="Search by project or course..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ flexGrow: 1 }}
             InputProps={{
-              startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
-            }}
-          />
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant={statusFilter === 'all' ? 'contained' : 'outlined'}
-              onClick={() => setStatusFilter('all')}
-            >
-              All
-            </Button>
-            <Button
-              variant={statusFilter === 'pending' ? 'contained' : 'outlined'}
-              color="warning"
-              onClick={() => setStatusFilter('pending')}
-            >
-              Pending
-            </Button>
-            <Button
-              variant={statusFilter === 'approved' ? 'contained' : 'outlined'}
-              color="success"
-              onClick={() => setStatusFilter('approved')}
-            >
-              Approved
-            </Button>
-            <Button
-              variant={statusFilter === 'rejected' ? 'contained' : 'outlined'}
-              color="error"
-              onClick={() => setStatusFilter('rejected')}
-            >
-              Rejected
-            </Button>
-          </Box>
-        </Stack>
-      </Box>
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControl size="small">
+          <InputLabel>Sort By</InputLabel>
+          <Select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            label="Sort By"
+          >
+            <MenuItem value="date">Latest First</MenuItem>
+            <MenuItem value="project">Project Name</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small">
+          <InputLabel>Status</InputLabel>
+          <Select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            label="Status"
+          >
+            <MenuItem value="all">All Status</MenuItem>
+            <MenuItem value="pending">Pending</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="rejected">Needs Revision</MenuItem>
+          </Select>
+        </FormControl>
+      </FilterBar>
 
-      <Typography variant="h6" gutterBottom>
-        Project Submissions
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={4}>
+          <StatsCard>
+            <Typography color="text.secondary" variant="body2">
+              Pending
+            </Typography>
+            <Typography variant="h5" color="warning.main">
+              {submissions.filter(s => s.status === 'pending').length}
+            </Typography>
+          </StatsCard>
+        </Grid>
+        <Grid item xs={4}>
+          <StatsCard>
+            <Typography color="text.secondary" variant="body2">
+              Approved
+            </Typography>
+            <Typography variant="h5" color="success.main">
+              {submissions.filter(s => s.status === 'approved').length}
+            </Typography>
+          </StatsCard>
+        </Grid>
+        <Grid item xs={4}>
+          <StatsCard>
+            <Typography color="text.secondary" variant="body2">
+              Needs Revision
+            </Typography>
+            <Typography variant="h5" color="error.main">
+              {submissions.filter(s => s.status === 'rejected').length}
       </Typography>
-      {loading ? (
+          </StatsCard>
+        </Grid>
+      </Grid>
+
         <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          p: 4 
-        }}>
-          <CircularProgress />
-        </Box>
-      ) : filteredSubmissions.length > 0 ? (
-        <List>
-          {filteredSubmissions.map((submission) => {
-            const statusColor = getStatusColor(submission.status);
-            
-            return (
+        '& .project-card': {
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateX(4px)',
+            backgroundColor: theme => theme.palette.action.hover,
+          },
+        }
+      }}>
+        <AnimatePresence>
+          {filteredSubmissions
+            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+            .map((submission) => (
               <motion.div
                 key={submission.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+                className="project-card"
               >
-                <ListItem
-                  sx={{
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    mb: 2,
-                    bgcolor: statusColor.bg,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      boxShadow: 2,
-                      transform: 'translateY(-2px)'
-                    }
-                  }}
-                >
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {submission.courseTitle} - {submission.projectTitle}
+                <ReviewCard status={submission.status}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={8}>
+                      <Typography 
+                        variant="subtitle1"
+                        gutterBottom
+                        sx={{ fontWeight: 500 }}
+                      >
+                        {submission.projectTitle}
                         </Typography>
-                        <Chip
-                          label={submission.status.toUpperCase()}
-                          color={statusColor.chip}
-                          size="small"
-                          sx={{ 
-                            ml: 2,
-                            fontWeight: 600,
-                            letterSpacing: '0.5px'
-                          }}
-                        />
-                      </Box>
-                    }
-                    secondary={
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          Submitted: {new Date(submission.submittedAt?.seconds * 1000).toLocaleString()}
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ mb: 1 }}
+                      >
+                        {submission.courseTitle}
                         </Typography>
-                        {submission.reviewedBy && (
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Reviewed by: {submission.reviewedBy.name} 
-                            {submission.reviewedAt && ` on ${new Date(submission.reviewedAt?.seconds * 1000).toLocaleString()}`}
-                          </Typography>
-                        )}
-                        <Button
-                          component={Link}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Link
                           href={submission.githubLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          startIcon={<GitHub />}
-                          endIcon={<OpenInNew />}
-                          variant="outlined"
-                          size="small"
-                          sx={{ mt: 1 }}
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1,
+                            color: 'text.primary',
+                            textDecoration: 'none',
+                            '&:hover': {
+                              color: 'primary.main',
+                            },
+                          }}
                         >
-                          View Repository
-                        </Button>
+                          <GitHub fontSize="small" />
+                          View Project
+                          <OpenInNew sx={{ fontSize: 14, ml: 0.5 }} />
+                        </Link>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <AccessTime fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            Submitted: {formatDate(submission.submittedAt)}
+                          </Typography>
+                        </Box>
                       </Box>
-                    }
-                  />
-                  <ListItemSecondaryAction>
+                    </Grid>
+                    <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      <StatusChip
+                        status={submission.status}
+                        label={submission.status.toUpperCase()}
+                        sx={{ mb: 1 }}
+                      />
+                      {submission.status === 'pending' && (
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="Approve">
-                        <span>
-                          <IconButton
-                            color="success"
-                            onClick={() => onReview(submission.id, 'approved')}
-                            disabled={submission.status !== 'pending'}
-                            sx={{
-                              bgcolor: 'success.lighter',
-                              '&:hover': {
-                                bgcolor: 'success.light'
-                              }
-                            }}
-                          >
-                            <CheckCircle />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title="Reject">
-                        <span>
-                          <IconButton
+                          <ActionButton
+                            variant="outlined"
                             color="error"
-                            onClick={() => onReview(submission.id, 'rejected')}
-                            disabled={submission.status !== 'pending'}
-                            sx={{
-                              bgcolor: 'error.lighter',
-                              '&:hover': {
-                                bgcolor: 'error.light'
-                              }
+                            startIcon={<Cancel />}
+                            onClick={() => {
+                              setSelectedSubmission(submission);
+                              setShowDialog(true);
                             }}
                           >
-                            <Cancel />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </Box>
-                  </ListItemSecondaryAction>
-                </ListItem>
+                            Reject
+                          </ActionButton>
+                          <ActionButton
+                            variant="contained"
+                            color="success"
+                            startIcon={<CheckCircle />}
+                            onClick={() => onReview(submission.id, 'approved')}
+                          >
+                            Approve
+                          </ActionButton>
+                        </Box>
+                      )}
+                    </Grid>
+                  </Grid>
+                  {(submission.status === 'approved' || submission.status === 'rejected') && (
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                            sx={{
+                        display: 'block',
+                        mt: 1,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {submission.status === 'approved' ? 'Approved' : 'Rejected'} by {submission.reviewedBy?.name || 'Admin'}
+                      {submission.reviewedAt && ` • ${formatDate(submission.reviewedAt)}`}
+                    </Typography>
+                  )}
+                </ReviewCard>
               </motion.div>
-            );
-          })}
-        </List>
-      ) : (
-        <Box 
-          sx={{ 
-            textAlign: 'center', 
-            py: 4,
-            bgcolor: 'background.default',
-            borderRadius: 2
-          }}
-        >
-          <Typography variant="body1" color="text.secondary">
-            No submissions found
-          </Typography>
+            ))}
+        </AnimatePresence>
+      </Box>
+
+      <TablePagination
+        component="div"
+        count={filteredSubmissions.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 25]}
+      />
+
+      <Dialog
+        open={showDialog}
+        onClose={() => setShowDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Provide Feedback</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Enter feedback for the student..."
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowDialog(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => handleReview('rejected')}
+          >
+            Submit Feedback
+          </Button>
+        </DialogActions>
+      </Dialog>
         </Box>
-      )}
-    </Paper>
   );
 };
 

@@ -10,6 +10,8 @@ import {
   getDoc, 
   serverTimestamp 
 } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
@@ -25,6 +27,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
   const createUserDocument = async (user) => {
     try {
@@ -85,8 +88,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await auth.signOut();
-      console.log('Logged out successfully');
+      await signOut(auth);
+      navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
