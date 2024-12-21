@@ -57,30 +57,123 @@ function App() {
         palette: {
           mode,
           primary: {
-            main: '#0000CB',
+            main: mode === 'light' ? '#0969DA' : '#58A6FF',
+            light: mode === 'light' ? '#218BFF' : '#79C0FF',
+            dark: mode === 'light' ? '#0550AE' : '#388BFD',
           },
           secondary: {
             main: '#FF4500',
+            light: '#FF6B3D',
+            dark: '#CC3700',
           },
           background: {
-            default: mode === 'light' ? '#FFFFFF' : '#111111',
-            paper: mode === 'light' ? '#F5F5F5' : '#1E1E1E',
+            default: mode === 'light' ? '#FFFFFF' : '#0D1117',
+            paper: mode === 'light' ? '#F6F8FA' : '#161B22',
+          },
+          text: {
+            primary: mode === 'light' ? '#24292F' : '#C9D1D9',
+            secondary: mode === 'light' ? '#57606A' : '#8B949E',
+          },
+          divider: mode === 'light' ? '#D0D7DE' : '#30363D',
+          error: {
+            main: '#CF222E',
+          },
+          success: {
+            main: '#2DA44E',
+          },
+          warning: {
+            main: '#BF8700',
           },
         },
         typography: {
-          fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+          fontFamily: '"Poppins", "Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif',
+          h1: {
+            fontSize: '2.5rem',
+            fontWeight: 600,
+            lineHeight: 1.2,
+          },
+          h2: {
+            fontSize: '2rem',
+            fontWeight: 600,
+            lineHeight: 1.3,
+          },
+          h3: {
+            fontSize: '1.5rem',
+            fontWeight: 600,
+            lineHeight: 1.4,
+          },
+          body1: {
+            fontSize: '1rem',
+            lineHeight: 1.5,
+          },
+          button: {
+            textTransform: 'none',
+            fontWeight: 600,
+          },
         },
         components: {
           MuiButton: {
             styleOverrides: {
               root: {
+                borderRadius: 6,
+                padding: '6px 16px',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-1px)',
+                },
+              },
+              contained: {
+                boxShadow: 'none',
+                '&:hover': {
+                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                },
+              },
+            },
+          },
+          MuiCard: {
+            styleOverrides: {
+              root: {
                 borderRadius: 8,
-                textTransform: 'none',
-                fontWeight: 600,
+                border: `1px solid ${mode === 'light' ? '#D0D7DE' : '#30363D'}`,
+                boxShadow: mode === 'light' 
+                  ? '0 3px 6px rgba(140,149,159,0.15)'
+                  : '0 3px 6px rgba(0,0,0,0.3)',
+              },
+            },
+          },
+          MuiPaper: {
+            styleOverrides: {
+              root: {
+                backgroundImage: 'none',
+              },
+            },
+          },
+          MuiAppBar: {
+            styleOverrides: {
+              root: {
+                backgroundColor: mode === 'light' ? '#FFFFFF' : '#161B22',
+                borderBottom: `1px solid ${mode === 'light' ? '#D0D7DE' : '#30363D'}`,
+                boxShadow: 'none',
+              },
+            },
+          },
+          MuiDrawer: {
+            styleOverrides: {
+              paper: {
+                backgroundColor: mode === 'light' ? '#F6F8FA' : '#161B22',
+                borderRight: `1px solid ${mode === 'light' ? '#D0D7DE' : '#30363D'}`,
               },
             },
           },
         },
+        shape: {
+          borderRadius: 6,
+        },
+        shadows: [
+          'none',
+          '0 1px 2px rgba(0, 0, 0, 0.07)',
+          // ... you can define more shadow levels if needed
+        ],
       }),
     [mode]
   );

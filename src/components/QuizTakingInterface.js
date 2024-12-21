@@ -35,6 +35,7 @@ import {
   Send
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { styled } from '@mui/material/styles';
 
 const QuestionDisplay = ({ question, userAnswer, onAnswer, showFeedback = false }) => {
   const handleTextAnswer = (value) => {
@@ -104,6 +105,47 @@ const QuestionDisplay = ({ question, userAnswer, onAnswer, showFeedback = false 
       return <Typography color="error">Unsupported question type</Typography>;
   }
 };
+
+const QuestionPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  marginBottom: theme.spacing(3),
+  position: 'relative',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: `linear-gradient(90deg, 
+      ${theme.palette.primary.main} var(--progress), 
+      ${theme.palette.divider} var(--progress))`,
+  },
+}));
+
+const OptionLabel = styled(FormControlLabel)(({ theme }) => ({
+  width: '100%',
+  margin: theme.spacing(1, 0),
+  padding: theme.spacing(1.5, 2),
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: theme.palette.mode === 'light'
+      ? 'rgba(208, 215, 222, 0.32)'
+      : 'rgba(48, 54, 61, 0.48)',
+  },
+}));
+
+const NavigationButtons = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: theme.spacing(2),
+  marginTop: theme.spacing(4),
+  '& .MuiButton-root': {
+    minWidth: '120px',
+  },
+}));
 
 const QuizTakingInterface = ({ quiz, onSubmit }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -432,7 +474,7 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
 
       {/* Main Question Content */}
       <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 3, py: 4 }}>
-        <Paper sx={{ p: 4 }}>
+        <QuestionPaper>
           <Typography variant="h6" gutterBottom>
             {quiz.questions[currentQuestion].text}
           </Typography>
@@ -445,7 +487,7 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
             />
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+          <NavigationButtons>
             <Button
               startIcon={<NavigateBefore />}
               onClick={() => setCurrentQuestion(prev => prev - 1)}
@@ -470,8 +512,8 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
                 Next
               </Button>
             )}
-          </Box>
-        </Paper>
+          </NavigationButtons>
+        </QuestionPaper>
       </Box>
 
       {/* Question Review Drawer */}

@@ -9,7 +9,8 @@ import {
   Typography,
   Button,
   Avatar,
-  Alert
+  Alert,
+  Paper
 } from '@mui/material';
 import {
   OndemandVideo,
@@ -29,6 +30,42 @@ import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import LoadingOverlay from '../components/LoadingOverlay';
 import QuizCard from '../components/QuizCard';
+import { styled } from '@mui/material/styles';
+
+const DashboardContainer = styled(Container)(({ theme }) => ({
+  paddingTop: theme.spacing(4),
+  paddingBottom: theme.spacing(8),
+}));
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: theme.palette.primary.main,
+    opacity: 0.8,
+  },
+}));
+
+const StatsCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(2),
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(2),
+  backgroundColor: theme.palette.mode === 'light'
+    ? theme.palette.primary.light + '10'
+    : theme.palette.primary.dark + '10',
+  border: `1px solid ${theme.palette.divider}`,
+}));
 
 const Dashboard = ({ toggleColorMode }) => {
   const navigate = useNavigate();
@@ -114,7 +151,7 @@ const Dashboard = ({ toggleColorMode }) => {
       <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <Header toggleColorMode={toggleColorMode} />
         
-        <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
+        <DashboardContainer maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
           <LoadingOverlay loading={loading} />
 
           {error && (
@@ -272,7 +309,7 @@ const Dashboard = ({ toggleColorMode }) => {
               </Box>
             </motion.div>
           </Box>
-        </Container>
+        </DashboardContainer>
 
         <Footer />
       </Box>

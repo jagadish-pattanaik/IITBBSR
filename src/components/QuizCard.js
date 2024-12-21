@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Avatar
+  Avatar,
+  LinearProgress
 } from '@mui/material';
 import { 
   Timer, 
@@ -25,6 +26,43 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import LeaderboardDialog from './LeaderboardDialog';
+import { styled } from '@mui/material/styles';
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: theme.palette.mode === 'light'
+      ? '0 8px 24px rgba(140,149,159,0.2)'
+      : '0 8px 24px rgba(0,0,0,0.4)',
+  },
+}));
+
+const QuizProgress = styled(LinearProgress)(({ theme }) => ({
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: theme.palette.mode === 'light'
+    ? 'rgba(208, 215, 222, 0.32)'
+    : 'rgba(48, 54, 61, 0.48)',
+  '.MuiLinearProgress-bar': {
+    borderRadius: 3,
+  },
+}));
+
+const QuizStats = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  gap: '16px',
+  padding: '12px 0',
+  borderTop: `1px solid ${theme.palette.divider}`,
+  '& > div': {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+}));
 
 const QuizCard = ({ quiz, userAttempt }) => {
   const navigate = useNavigate();
@@ -118,7 +156,7 @@ const QuizCard = ({ quiz, userAttempt }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <StyledCard>
         <CardContent sx={{ flexGrow: 1 }}>
           <Typography variant="h6" gutterBottom>
             {quiz.title}
@@ -163,7 +201,7 @@ const QuizCard = ({ quiz, userAttempt }) => {
         <CardActions>
           {renderActionButton()}
         </CardActions>
-      </Card>
+      </StyledCard>
 
       <Dialog open={showStartDialog} onClose={() => setShowStartDialog(false)}>
         <DialogTitle>Start Quiz?</DialogTitle>

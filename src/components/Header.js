@@ -1,10 +1,58 @@
-import { AppBar, Toolbar, Button, IconButton, Box, useTheme } from '@mui/material';
+import { AppBar, Toolbar, IconButton, Box, Button, Avatar, Menu, MenuItem, useTheme } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import { Brightness4, Brightness7, Dashboard, Logout, Home, AdminPanelSettings } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { checkIsAdmin } from '../utils/adminCheck';
 import { useState, useEffect, useCallback } from 'react';
+
+const StyledAppBar = styled(AppBar)(({ theme }) => ({
+  transition: 'all 0.3s ease',
+  backdropFilter: 'blur(8px)',
+  backgroundColor: theme.palette.mode === 'light' 
+    ? 'rgba(255, 255, 255, 0.8)'
+    : 'rgba(22, 27, 34, 0.8)',
+}));
+
+const StyledToolbar = styled(Toolbar)({
+  display: 'flex',
+  justifyContent: 'space-between',
+  padding: '8px 24px',
+});
+
+const NavButton = styled(Button)(({ theme }) => ({
+  margin: '0 8px',
+  padding: '6px 16px',
+  color: theme.palette.text.primary,
+  '&:hover': {
+    backgroundColor: theme.palette.mode === 'light' 
+      ? 'rgba(208, 215, 222, 0.32)'
+      : 'rgba(48, 54, 61, 0.48)',
+  },
+}));
+
+const UserAvatar = styled(Avatar)(({ theme }) => ({
+  cursor: 'pointer',
+  border: `2px solid ${theme.palette.divider}`,
+  transition: 'transform 0.2s ease',
+  '&:hover': {
+    transform: 'scale(1.05)',
+  },
+}));
+
+const ThemeToggle = styled(IconButton)(({ theme }) => ({
+  color: theme.palette.text.primary,
+  marginLeft: '8px',
+  padding: '8px',
+  '&:hover': {
+    backgroundColor: theme.palette.mode === 'light'
+      ? 'rgba(208, 215, 222, 0.32)'
+      : 'rgba(48, 54, 61, 0.48)',
+  },
+}));
 
 const Header = ({ toggleColorMode }) => {
   const theme = useTheme();
@@ -54,8 +102,8 @@ const Header = ({ toggleColorMode }) => {
   };
 
   return (
-    <AppBar position="fixed" color="inherit" elevation={0}>
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
+    <StyledAppBar position="fixed" color="inherit" elevation={0}>
+      <StyledToolbar>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <motion.div
             initial={false}
@@ -86,34 +134,34 @@ const Header = ({ toggleColorMode }) => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Button
+              <NavButton
                 startIcon={<Home />}
                 onClick={() => navigate('/')}
                 sx={{ ml: 2 }}
                 color="inherit"
               >
                 Home
-              </Button>
+              </NavButton>
             </motion.div>
           )}
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <IconButton onClick={toggleColorMode} color="inherit">
+          <ThemeToggle onClick={toggleColorMode} color="inherit">
             {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
+          </ThemeToggle>
           
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Button
+            <NavButton
               variant="outlined"
               color="primary"
               onClick={() => window.open('https://official-website.com', '_blank')}
             >
               Official Website
-            </Button>
+            </NavButton>
           </motion.div>
 
           {currentUser ? (
@@ -126,14 +174,14 @@ const Header = ({ toggleColorMode }) => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button
+                  <NavButton
                     variant="outlined"
                     color="primary"
                     startIcon={<AdminPanelSettings />}
                     onClick={() => navigate('/admin')}
                   >
                     Admin Panel
-                  </Button>
+                  </NavButton>
                 </motion.div>
               )}
 
@@ -145,14 +193,14 @@ const Header = ({ toggleColorMode }) => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button
+                  <NavButton
                     variant="outlined"
                     color="primary"
                     startIcon={<Dashboard />}
                     onClick={() => navigate('/dashboard')}
                   >
                     My Dashboard
-                  </Button>
+                  </NavButton>
                 </motion.div>
               )}
 
@@ -164,14 +212,14 @@ const Header = ({ toggleColorMode }) => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button
+                  <NavButton
                     variant="outlined"
                     color="primary"
                     startIcon={<Dashboard />}
                     onClick={() => navigate('/dashboard')}
                   >
                     Dashboard
-                  </Button>
+                  </NavButton>
                 </motion.div>
               )}
 
@@ -182,14 +230,14 @@ const Header = ({ toggleColorMode }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button
+                <NavButton
                   variant="contained"
                   color="primary"
                   startIcon={<Logout />}
                   onClick={handleLogout}
                 >
                   Logout
-                </Button>
+                </NavButton>
               </motion.div>
             </Box>
           ) : (
@@ -197,18 +245,18 @@ const Header = ({ toggleColorMode }) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Button
+              <NavButton
                 variant="contained"
                 color="primary"
                 onClick={handleAuthAction}
               >
                 {currentUser ? 'Go to Dashboard' : 'Login with Google'}
-              </Button>
+              </NavButton>
             </motion.div>
           )}
         </Box>
-      </Toolbar>
-    </AppBar>
+      </StyledToolbar>
+    </StyledAppBar>
   );
 };
 
