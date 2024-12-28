@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -32,6 +32,7 @@ import {
   PlayArrow,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BRANCHES } from '../utils/constants';
 
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
@@ -108,6 +109,9 @@ const UserList = ({ users, onViewUser }) => {
   const [filterYear, setFilterYear] = useState('all');
   const [filterBranch, setFilterBranch] = useState('all');
 
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 8 }, (_, i) => currentYear - 1 + i);
+
   const calculateProgress = (user) => {
     const totalVideos = 30; // Example total
     const totalProjects = 10;
@@ -129,23 +133,28 @@ const UserList = ({ users, onViewUser }) => {
     );
   };
 
-  const filteredUsers = users.filter(user =>
-    (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     user.email?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (filterYear === 'all' || user.year === filterYear) &&
-    (filterBranch === 'all' || user.branch === filterBranch)
-  );
-
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    switch (sortBy) {
-      case 'rank':
-        return calculateRank(b) - calculateRank(a);
-      case 'name':
-        return (a.name || '').localeCompare(b.name || '');
-      default:
-        return 0;
-    }
-  });
+  const sortedUsers = useMemo(() => {
+    return users
+      .filter(user => {
+        const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesYear = filterYear === 'all' || user.graduatingYear?.toString() === filterYear.toString();
+        const matchesBranch = filterBranch === 'all' || user.branch === filterBranch;
+        
+        return matchesSearch && matchesYear && matchesBranch;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'rank':
+            return calculateRank(b) - calculateRank(a);
+          case 'name':
+            return (a.name || '').localeCompare(b.name || '');
+          default:
+            return 0;
+        }
+      });
+  }, [users, searchTerm, filterYear, filterBranch, sortBy]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -168,10 +177,10 @@ const UserList = ({ users, onViewUser }) => {
             },
           }}
           variant="outlined"
-          placeholder="Search users by name or email..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
+            placeholder="Search users by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
             startAdornment: (
               <InputAdornment position="start">
                 <Search color="action" />
@@ -192,36 +201,33 @@ const UserList = ({ users, onViewUser }) => {
           </Select>
         </FilterSelect>
 
-        <FilterSelect size="small">
-          <InputLabel>Year</InputLabel>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Graduating Year</InputLabel>
           <Select
             value={filterYear}
+            label="Graduating Year"
             onChange={(e) => setFilterYear(e.target.value)}
-            label="Year"
           >
             <MenuItem value="all">All Years</MenuItem>
-            <MenuItem value="1">1st Year</MenuItem>
-            <MenuItem value="2">2nd Year</MenuItem>
-            <MenuItem value="3">3rd Year</MenuItem>
-            <MenuItem value="4">4th Year</MenuItem>
+            {years.map(year => (
+              <MenuItem key={year} value={year.toString()}>{year}</MenuItem>
+            ))}
           </Select>
-        </FilterSelect>
+        </FormControl>
 
-        <FilterSelect size="small">
+        <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Branch</InputLabel>
           <Select
             value={filterBranch}
-            onChange={(e) => setFilterBranch(e.target.value)}
             label="Branch"
+            onChange={(e) => setFilterBranch(e.target.value)}
           >
             <MenuItem value="all">All Branches</MenuItem>
-            <MenuItem value="CSE">CSE</MenuItem>
-            <MenuItem value="ECE">ECE</MenuItem>
-            <MenuItem value="ME">ME</MenuItem>
-            <MenuItem value="CE">CE</MenuItem>
-            {/* Add more branches as needed */}
+            {BRANCHES.map((branch) => (
+              <MenuItem key={branch} value={branch}>{branch}</MenuItem>
+            ))}
           </Select>
-        </FilterSelect>
+        </FormControl>
       </FiltersContainer>
 
       <StyledTableContainer component={Paper}>
@@ -238,15 +244,15 @@ const UserList = ({ users, onViewUser }) => {
               {sortedUsers
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((user) => (
-                  <motion.tr
-                    key={user.id}
+                <motion.tr
+                  key={user.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.2 }}
                     component={StyledTableRow}
                   >
-                    <TableCell>
+                  <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Box sx={{ position: 'relative' }}>
                           <Avatar src={user.photoURL} alt={user.name}>
@@ -260,7 +266,7 @@ const UserList = ({ users, onViewUser }) => {
                             }`}
                             color="primary"
                             size="small"
-                            sx={{
+                        sx={{ 
                               position: 'absolute',
                               top: -10,
                               left: -10,
@@ -273,30 +279,30 @@ const UserList = ({ users, onViewUser }) => {
                             }}
                           />
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle2">
-                            {user.name}
-                          </Typography>
+                      <Box>
+                        <Typography variant="subtitle2">
+                          {user.name}
+                        </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {user.email}
-                          </Typography>
-                        </Box>
+                          {user.email}
+                        </Typography>
                       </Box>
-                    </TableCell>
+                    </Box>
+                  </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                         <Tooltip title="Courses Completed">
-                          <Chip
+                    <Chip
                             icon={<School fontSize="small" />}
                             label={Object.keys(user.completedCourses || {}).length}
-                            size="small"
+                      size="small"
                             variant="outlined"
-                          />
+                    />
                         </Tooltip>
                         <Tooltip title="Projects Submitted">
-                          <Chip
+                    <Chip
                             icon={<Assignment fontSize="small" />}
-                            label={user.progress?.projectsSubmitted || 0}
+                      label={user.progress?.projectsSubmitted || 0}
                             size="small"
                             variant="outlined"
                           />
@@ -305,36 +311,36 @@ const UserList = ({ users, onViewUser }) => {
                           <Chip
                             icon={<PlayArrow fontSize="small" />}
                             label={user.progress?.videosWatched || 0}
-                            size="small"
+                      size="small"
                             variant="outlined"
-                          />
+                    />
                         </Tooltip>
                       </Box>
-                    </TableCell>
+                  </TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Stats">
-                        <IconButton 
-                          onClick={() => onViewUser(user)}
-                          size="small"
-                        >
+                      <IconButton 
+                        onClick={() => onViewUser(user)}
+                        size="small"
+                      >
                           <Assessment />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </motion.tr>
-                ))}
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </motion.tr>
+              ))}
             </AnimatePresence>
           </TableBody>
         </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
           count={sortedUsers.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
       </StyledTableContainer>
     </Box>
   );

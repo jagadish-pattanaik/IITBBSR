@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import UserDetailsDialog from '../components/UserDetailsDialog';
 
 const AuthContext = createContext(null);
 
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const navigate = useNavigate();
 
   const createUserDocument = async (user) => {
@@ -40,20 +42,15 @@ export const AuthProvider = ({ children }) => {
           name: user.displayName,
           photoURL: user.photoURL,
           createdAt: serverTimestamp(),
-          year: null,
           branch: null,
-          role: 'user',
-          progress: {
-            videosWatched: 0,
-            projectsSubmitted: 0
-          }
+          graduatingYear: null
         });
-        return true; // New user
+        setShowDetailsDialog(true);
+      } else if (!userDoc.data().branch || !userDoc.data().graduatingYear) {
+        setShowDetailsDialog(true);
       }
-      return false; // Existing user
     } catch (error) {
       console.error('Error creating user document:', error);
-      return false;
     }
   };
 
@@ -127,6 +124,11 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
+      <UserDetailsDialog 
+        open={showDetailsDialog} 
+        userId={currentUser?.uid}
+        onClose={() => setShowDetailsDialog(false)}
+      />
     </AuthContext.Provider>
   );
 }; 

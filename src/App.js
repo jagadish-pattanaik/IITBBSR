@@ -230,6 +230,19 @@ function App() {
     [mode]
   );
 
+  useEffect(() => {
+    const checkScroll = () => {
+      const hasScroll = document.documentElement.scrollHeight > window.innerHeight;
+      document.body.classList.toggle('has-scroll', hasScroll);
+    };
+
+    // Check on mount and window resize
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+
+    return () => window.removeEventListener('resize', checkScroll);
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>

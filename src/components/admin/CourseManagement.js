@@ -50,6 +50,8 @@ import {
   ExpandMore,
   AccessTime,
   School,
+  Star,
+  StarBorder
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFirebase } from '../../hooks/useFirebase';
@@ -278,6 +280,22 @@ const CourseManagement = () => {
     setPage(0);
   };
 
+  const handleTogglePopular = async (course) => {
+    try {
+      setLoading(true);
+      await updateCourse(course.id, {
+        ...course,
+        isPopular: !course.isPopular,
+        updatedAt: new Date().toISOString()
+      });
+      setDataFetched(false); // Refresh list
+    } catch (error) {
+      console.error('Error toggling popular status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Styled Components
   const CourseCard = styled(Paper)(({ theme }) => ({
     height: '100%',
@@ -403,6 +421,30 @@ const CourseManagement = () => {
                   transition={{ duration: 0.3 }}
                 >
                   <CourseCard>
+                    <Box sx={{ position: 'relative' }}>
+                      <IconButton
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          zIndex: 1,
+                          backgroundColor: 'background.paper',
+                          '&:hover': {
+                            backgroundColor: 'action.hover',
+                          },
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTogglePopular(course);
+                        }}
+                      >
+                        {course.isPopular ? (
+                          <Star sx={{ color: 'warning.main' }} />
+                        ) : (
+                          <StarBorder />
+                        )}
+                      </IconButton>
+                    </Box>
                     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                       <Typography variant="h6" gutterBottom>
                         {course.title}

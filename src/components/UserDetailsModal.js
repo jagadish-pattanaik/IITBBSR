@@ -97,11 +97,11 @@ const UserDetailsModal = ({ open, onClose, user }) => {
             <List dense>
               <ListItem>
                 <ListItemText
-                  primary="Year"
+                  primary="Graduating Year"
                   secondary={
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                       <School sx={{ fontSize: 18, mr: 1 }} />
-                      {user.year}
+                      {user.graduatingYear}
                     </Box>
                   }
                 />

@@ -18,7 +18,8 @@ import {
   Assignment,
   Quiz,
   ArrowForward,
-  School
+  School,
+  AutoStories
 } from '@mui/icons-material';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -88,6 +89,9 @@ const DashboardWrapper = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
   width: '100%',
   overflowX: 'hidden',
+  '& > *': {
+    overflowX: 'hidden'
+  }
 }));
 
 const SectionHeader = styled(Box)(({ theme }) => ({
@@ -127,6 +131,7 @@ const Dashboard = ({ toggleColorMode }) => {
   const [totalVideos, setTotalVideos] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
   const [totalCourses, setTotalCourses] = useState(0);
+  const [userData, setUserData] = useState(null);
 
   // Memoize sorted courses
   const sortedCourses = useMemo(() => {
@@ -189,6 +194,7 @@ const Dashboard = ({ toggleColorMode }) => {
       }
 
       setDataFetched(true);
+      setUserData(userData);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Failed to load dashboard data');
@@ -212,6 +218,23 @@ const Dashboard = ({ toggleColorMode }) => {
       return isActive || isRecentlyExpired;
     });
   }, [quizzes]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!currentUser?.uid) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserData(userDoc.data());
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, [currentUser]);
 
   return (
     <AnimatedPage>
@@ -272,30 +295,63 @@ const Dashboard = ({ toggleColorMode }) => {
                 border: '1px solid',
                 borderColor: 'divider',
               }}>
-                <Grid container spacing={3} alignItems="center">
-                  <Grid item>
-                    <motion.div whileHover={{ scale: 1.1 }}>
-                      <Avatar
-                        src={currentUser?.photoURL}
-                        alt={currentUser?.displayName}
-                        sx={{ 
-                          width: 80, 
-                          height: 80,
-                          border: 3,
-                          borderColor: 'primary.main',
-                        }}
-                      />
-                    </motion.div>
-                  </Grid>
-                  <Grid item xs>
-                    <Typography variant="h4" gutterBottom>
-                      Welcome back, {currentUser?.displayName}!
+                {/* First row - Profile and Details */}
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <Box sx={{ position: 'relative' }}>
+                    <Avatar
+                      src={currentUser?.photoURL}
+                      alt={currentUser?.displayName}
+                      sx={{
+                        width: 64,
+                        height: 64,
+                        border: 2,
+                        borderColor: 'primary.main',
+                        transition: 'transform 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'scale(1.05)',
+                        }
+                      }}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ ml: 2 }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 1
+                      }}
+                    >
+                      <School fontSize="small" />
+                      {userData?.branch || 'Branch not set'}
                     </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                      Keep up the great work on your learning journey
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <AutoStories fontSize="small" />
+                      Graduating: {userData?.graduatingYear || 'Year not set'}
                     </Typography>
-                  </Grid>
-                </Grid>
+                  </Box>
+                </Box>
+
+                {/* Second row - Welcome Message */}
+                <Box>
+                  <Typography variant="h4" gutterBottom>
+                    Welcome back, {currentUser?.displayName}!
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    Keep up the great work on your learning journey
+                  </Typography>
+                </Box>
               </Box>
             </motion.div>
 
@@ -303,103 +359,103 @@ const Dashboard = ({ toggleColorMode }) => {
             <SectionHeader>
               <Typography variant="h5">Your Progress</Typography>
             </SectionHeader>
-            <Grid container spacing={3} sx={{ mb: 6 }}>
-              <Grid item xs={12} sm={6} md={4}>
-                <ProgressCard
-                  title="Videos Watched"
-                  value={userProgress.videosWatched}
+              <Grid container spacing={3} sx={{ mb: 6 }}>
+                <Grid item xs={12} sm={6} md={4}>
+                  <ProgressCard
+                    title="Videos Watched"
+                    value={userProgress.videosWatched}
                   total={totalVideos}
-                  icon={<OndemandVideo fontSize="large" />}
-                  color="#0000CB"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <ProgressCard
-                  title="Projects Submitted"
-                  value={userProgress.projectsSubmitted}
+                    icon={<OndemandVideo fontSize="large" />}
+                    color="#0000CB"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <ProgressCard
+                    title="Projects Submitted"
+                    value={userProgress.projectsSubmitted}
                   total={totalProjects}
-                  icon={<Assignment fontSize="large" />}
-                  color="#FF4500"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <ProgressCard
-                  title="Courses Completed"
-                  value={userProgress.coursesCompleted}
+                    icon={<Assignment fontSize="large" />}
+                    color="#FF4500"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <ProgressCard
+                    title="Courses Completed"
+                    value={userProgress.coursesCompleted || 0}
                   total={totalCourses}
-                  icon={<School fontSize="large" />}
-                  color="#00C853"
-                />
+                    icon={<School fontSize="large" />}
+                    color="#00C853"
+                  />
+                </Grid>
               </Grid>
-            </Grid>
 
             {/* Courses Section */}
             <SectionHeader>
               <Typography variant="h5">Your Courses</Typography>
               <motion.div whileHover={{ scale: 1.05 }}>
-                <Button
-                  endIcon={<ArrowForward />}
-                  onClick={() => navigate('/courses')}
-                  variant="outlined"
-                  color="primary"
-                >
-                  View All
-                </Button>
+                  <Button
+                    endIcon={<ArrowForward />}
+                    onClick={() => navigate('/courses')}
+                    variant="outlined"
+                    color="primary"
+                  >
+                    View All
+                  </Button>
               </motion.div>
             </SectionHeader>
             <Grid container spacing={3} sx={{ mb: 6 }}>
-              {sortedCourses.length > 0 ? (
-                sortedCourses.map((course) => (
-                  <Grid item xs={12} sm={6} md={4} key={course.id}>
-                    <CourseCard
-                      course={course}
-                      onClick={() => navigate(`/course/${course.id}`)}
+                  {sortedCourses.length > 0 ? (
+                    sortedCourses.map((course) => (
+                      <Grid item xs={12} sm={6} md={4} key={course.id}>
+                        <CourseCard
+                          course={course}
+                          onClick={() => navigate(`/course/${course.id}`)}
                       isCompleted={currentUser?.completedCourses?.[course.id]}
-                    />
-                  </Grid>
-                ))
-              ) : (
-                <Grid item xs={12}>
-                  <Typography variant="body1" color="text.secondary" align="center">
-                    No courses available at the moment.
-                  </Typography>
+                        />
+                      </Grid>
+                    ))
+                  ) : (
+                    <Grid item xs={12}>
+                      <Typography variant="body1" color="text.secondary" align="center">
+                        No courses available at the moment.
+                      </Typography>
+                    </Grid>
+                  )}
                 </Grid>
-              )}
-            </Grid>
 
             {/* Quizzes Section */}
             <SectionHeader>
               <Typography variant="h5">Active Quizzes</Typography>
               <motion.div whileHover={{ scale: 1.05 }}>
-                <Button
-                  endIcon={<ArrowForward />}
-                  onClick={() => navigate('/quizzes')}
-                  variant="outlined"
-                  color="primary"
-                >
-                  View All
-                </Button>
+                  <Button
+                    endIcon={<ArrowForward />}
+                    onClick={() => navigate('/quizzes')}
+                    variant="outlined"
+                    color="primary"
+                  >
+                    View All
+                  </Button>
               </motion.div>
             </SectionHeader>
-            <Grid container spacing={3}>
-              {filteredQuizzes.length > 0 ? (
-                filteredQuizzes.map((quiz) => (
-                  <Grid item xs={12} sm={6} md={4} key={quiz.id}>
-                    <QuizCard
-                      quiz={quiz}
-                      onStart={() => window.open(quiz.link, '_blank')}
-                    />
-                  </Grid>
-                ))
-              ) : (
-                <Grid item xs={12}>
-                  <Typography variant="body1" color="text.secondary" align="center">
-                    No active or recent quizzes at the moment.
-                  </Typography>
+                <Grid container spacing={3}>
+                  {filteredQuizzes.length > 0 ? (
+                    filteredQuizzes.map((quiz) => (
+                      <Grid item xs={12} sm={6} md={4} key={quiz.id}>
+                        <QuizCard
+                          quiz={quiz}
+                          onStart={() => window.open(quiz.link, '_blank')}
+                        />
+                      </Grid>
+                    ))
+                  ) : (
+                    <Grid item xs={12}>
+                      <Typography variant="body1" color="text.secondary" align="center">
+                        No active or recent quizzes at the moment.
+                      </Typography>
+                    </Grid>
+                  )}
                 </Grid>
-              )}
-            </Grid>
-          </Box>
+              </Box>
         </DashboardContainer>
 
         <Footer />

@@ -529,17 +529,17 @@ const CoursePage = () => {
         ) : error ? (
           <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
             {/* Course Header */}
             <CourseHeader>
               <Grid container spacing={2} alignItems="center">
                 <Grid item>
                   <Avatar
-                    sx={{ 
+              sx={{ 
                       width: 64, 
                       height: 64,
                       bgcolor: 'primary.main',
@@ -550,15 +550,15 @@ const CoursePage = () => {
                 </Grid>
                 <Grid item xs>
                   <Typography variant="h4" gutterBottom>
-                    {course?.title}
-                  </Typography>
-                  <Typography 
-                    variant="body1" 
-                    color="text.secondary"
+                {course?.title}
+              </Typography>
+              <Typography 
+                variant="body1"
+                color="text.secondary"
                     sx={{ maxWidth: 800 }}
-                  >
-                    {course?.description}
-                  </Typography>
+              >
+                {course?.description}
+              </Typography>
                 </Grid>
               </Grid>
             </CourseHeader>
@@ -566,65 +566,65 @@ const CoursePage = () => {
             {/* Main Content */}
             <Grid container spacing={4}>
               {/* Video Section */}
-              <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={8}>
                 <ContentSection>
                   <Typography variant="h6" gutterBottom>Course Content</Typography>
                   <VideoContainer>
-                    <VideoPlayer
-                      key={selectedVideo.id}
-                      videoUrl={selectedVideo.url}
-                      courseId={courseId}
-                      videoId={selectedVideo.id}
-                      onProgress={handleVideoProgress}
+                <VideoPlayer
+                  key={selectedVideo.id}
+                  videoUrl={selectedVideo.url}
+                  courseId={courseId}
+                  videoId={selectedVideo.id}
+                  onProgress={handleVideoProgress}
                       onComplete={handleVideoComplete}
                     />
                   </VideoContainer>
                 </ContentSection>
-              </Grid>
+          </Grid>
 
-              {/* Sidebar */}
-              <Grid item xs={12} md={4}>
+          {/* Sidebar */}
+          <Grid item xs={12} md={4}>
                 <ContentSection>
                   <Typography variant="h6" gutterBottom>Videos</Typography>
-                  <List>
-                    {course?.videos?.map((video) => (
-                      <ListItem
-                        key={video.id}
-                        disablePadding
+              <List>
+                {course?.videos?.map((video) => (
+                  <ListItem
+                    key={video.id}
+                    disablePadding
                       >
                         <VideoListItem
-                          onClick={() => handleVideoSelect(video)}
+                      onClick={() => handleVideoSelect(video)}
                           isActive={selectedVideo?.id === video.id}
                           isCompleted={completedVideos.has(video.id)}
-                        >
-                          <ListItemIcon>
-                            {completedVideos.has(video.id) ? (
-                              <CheckCircle color="success" />
-                            ) : (
-                              <PlayCircleOutline />
-                            )}
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary={video.title}
-                            secondary={video.duration}
-                            primaryTypographyProps={{
-                              fontWeight: selectedVideo?.id === video.id ? 600 : 400
-                            }}
-                          />
+                    >
+                      <ListItemIcon>
+                        {completedVideos.has(video.id) ? (
+                          <CheckCircle color="success" />
+                        ) : (
+                          <PlayCircleOutline />
+                        )}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={video.title}
+                        secondary={video.duration}
+                        primaryTypographyProps={{
+                          fontWeight: selectedVideo?.id === video.id ? 600 : 400
+                        }}
+                      />
                         </VideoListItem>
-                      </ListItem>
-                    ))}
-                  </List>
+                  </ListItem>
+                ))}
+              </List>
                 </ContentSection>
-
+              
                 <ContentSection>
                   <Typography variant="h6" gutterBottom>Projects</Typography>
-                  {course?.projects?.map((project) => {
-                    const submission = projectSubmissions[project.id];
-                    const canSubmit = canSubmitProject(project.id);
-                    
-                    return (
-                      <motion.div key={project.id}>
+              {course?.projects?.map((project) => {
+                const submission = projectSubmissions[project.id];
+                const canSubmit = canSubmitProject(project.id);
+                
+                return (
+                  <motion.div key={project.id}>
                         <ProjectCard 
                           status={submission?.status}
                           onClick={() => handleProjectClick(project)}
@@ -633,8 +633,8 @@ const CoursePage = () => {
                           <Typography 
                             variant="subtitle2"
                             sx={{ mb: 0.5 }}
-                          >
-                            {project.title}
+                        >
+                          {project.title}
                           </Typography>
                           <Typography 
                             variant="caption"
@@ -647,12 +647,12 @@ const CoursePage = () => {
                           >
                             {project.description}
                           </Typography>
-                          {submission?.githubLink && (
-                            <Button
-                              component={Link}
-                              href={submission.githubLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                      {submission?.githubLink && (
+                          <Button
+                            component={Link}
+                            href={submission.githubLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
                               startIcon={<GitHub sx={{ fontSize: '1rem' }} />}
                               endIcon={<OpenInNew sx={{ fontSize: '0.875rem' }} />}
                               size="small"
@@ -689,12 +689,12 @@ const CoursePage = () => {
                             }}
                           />
                         </ProjectCard>
-                      </motion.div>
-                    );
-                  })}
+                  </motion.div>
+                );
+              })}
                 </ContentSection>
-              </Grid>
-            </Grid>
+          </Grid>
+        </Grid>
           </motion.div>
         )}
       </CourseContainer>

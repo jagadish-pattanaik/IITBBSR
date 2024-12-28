@@ -517,13 +517,13 @@ const QuizManagement = () => {
   return (
     <Box>
       <FilterBar>
-        <TextField
+                  <TextField
           size="small"
-          placeholder="Search quizzes..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search quizzes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
           sx={{ flexGrow: 1 }}
-          InputProps={{
+                    InputProps={{
             startAdornment: (
               <InputAdornment position="start">
                 <Search color="action" />
@@ -544,20 +544,20 @@ const QuizManagement = () => {
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Level</InputLabel>
-          <Select
-            value={levelFilter}
-            label="Level"
-            onChange={(e) => setLevelFilter(e.target.value)}
-          >
-            <MenuItem value="all">All Levels</MenuItem>
-            {DIFFICULTY_LEVELS.map(level => (
-              <MenuItem key={level.value} value={level.value}>
-                {level.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+                    <InputLabel>Level</InputLabel>
+                    <Select
+                      value={levelFilter}
+                      label="Level"
+                      onChange={(e) => setLevelFilter(e.target.value)}
+                    >
+                      <MenuItem value="all">All Levels</MenuItem>
+                      {DIFFICULTY_LEVELS.map(level => (
+                        <MenuItem key={level.value} value={level.value}>
+                          {level.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
         <Button
           variant="contained"
           startIcon={<Add />}
@@ -577,24 +577,24 @@ const QuizManagement = () => {
             zIndex: 2
           }}>
             <CircularProgress />
-          </Box>
+                </Box>
         )}
 
-        <Grid container spacing={3}>
+            <Grid container spacing={3}>
           {filteredQuizzes
             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
             .map((quiz) => (
-              <Grid item xs={12} sm={6} md={4} key={quiz.id}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <Grid item xs={12} sm={6} md={4} key={quiz.id}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
                   <QuizCard>
                     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <Typography variant="h6" gutterBottom>
-                        {quiz.title}
-                      </Typography>
+                        <Typography variant="h6" gutterBottom>
+                          {quiz.title}
+                        </Typography>
                       <Typography 
                         variant="body2" 
                         color="text.secondary"
@@ -608,13 +608,13 @@ const QuizManagement = () => {
                           WebkitBoxOrient: 'vertical',
                         }}
                       >
-                        {quiz.description}
-                      </Typography>
+                          {quiz.description}
+                        </Typography>
 
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
                         {/* First row */}
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Chip
+                          <Chip 
                             icon={<QuestionAnswer fontSize="small" />}
                             label={`${quiz.questions?.length || 0} Questions`}
                             size="small"
@@ -669,7 +669,7 @@ const QuizManagement = () => {
                         <ActionButton
                           variant="outlined"
                           startIcon={<Edit />}
-                          onClick={() => handleOpenDialog(quiz)}
+                            onClick={() => handleOpenDialog(quiz)}
                         >
                           Edit
                         </ActionButton>
@@ -682,21 +682,21 @@ const QuizManagement = () => {
                             Questions
                           </ActionButton>
                         )}
-                        <IconButton
-                          color="error"
+                          <IconButton 
+                            color="error"
                           size="small"
-                          onClick={() => handleDeleteClick(quiz)}
+                            onClick={() => handleDeleteClick(quiz)}
                           sx={{ ml: 'auto' }}
-                        >
-                          <Delete />
-                        </IconButton>
+                          >
+                            <Delete />
+                          </IconButton>
                       </Box>
                     </Box>
                   </QuizCard>
-                </motion.div>
-              </Grid>
-            ))}
-        </Grid>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
 
         <TablePagination
           component="div"
@@ -708,102 +708,102 @@ const QuizManagement = () => {
           rowsPerPageOptions={[9, 18, 27]}
           sx={{ mt: 2 }}
         />
-      </Box>
+          </Box>
 
-      {/* Dialogs */}
-      <Dialog
-        open={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          elevation: 3,
-          sx: {
-            borderRadius: 2,
-            minWidth: '300px'
-          }
-        }}
-      >
-        <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Delete color="error" />
-            Confirm Deletion
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the quiz "{quizToDelete?.title}"? This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setDeleteConfirmOpen(false)}
-            variant="outlined"
-            disabled={loading}
+          {/* Dialogs */}
+          <Dialog
+            open={deleteConfirmOpen}
+            onClose={() => setDeleteConfirmOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{
+              elevation: 3,
+              sx: {
+                borderRadius: 2,
+                minWidth: '300px'
+              }
+            }}
           >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            variant="contained"
-            color="error"
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <Delete />}
-          >
-            Delete Quiz
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Delete color="error" />
+                Confirm Deletion
+              </Typography>
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Are you sure you want to delete the quiz "{quizToDelete?.title}"? This action cannot be undone.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button
+                onClick={() => setDeleteConfirmOpen(false)}
+                variant="outlined"
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteConfirm}
+                variant="contained"
+                color="error"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} /> : <Delete />}
+              >
+                Delete Quiz
+              </Button>
+            </DialogActions>
+          </Dialog>
 
-      <Dialog
-        open={openDialog}
-        onClose={loading ? undefined : handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-        disableEscapeKeyDown={loading}
-        PaperProps={{
-          sx: {
-            minHeight: '50vh',
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }
-        }}
-      >
-        <DialogTitle>
-          {selectedQuiz ? 'Edit Quiz' : 'Add New Quiz'}
-        </DialogTitle>
-        <DialogContent>
-          {renderDialogContent()}
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={handleCloseDialog} 
-            disabled={loading}
+          <Dialog
+            open={openDialog}
+            onClose={loading ? undefined : handleCloseDialog}
+            maxWidth="sm"
+            fullWidth
+            disableEscapeKeyDown={loading}
+            PaperProps={{
+              sx: {
+                minHeight: '50vh',
+                maxHeight: '80vh',
+                overflow: 'auto'
+              }
+            }}
           >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <Save />}
-          >
-            {loading ? 'Saving...' : (selectedQuiz ? 'Update Quiz' : 'Create Quiz')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <DialogTitle>
+              {selectedQuiz ? 'Edit Quiz' : 'Add New Quiz'}
+            </DialogTitle>
+            <DialogContent>
+              {renderDialogContent()}
+            </DialogContent>
+            <DialogActions>
+              <Button 
+                onClick={handleCloseDialog} 
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                variant="contained"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+              >
+                {loading ? 'Saving...' : (selectedQuiz ? 'Update Quiz' : 'Create Quiz')}
+              </Button>
+            </DialogActions>
+          </Dialog>
 
-      <QuestionDialog
-        open={showQuestionDialog}
-        onClose={loading ? undefined : () => {
-          setShowQuestionDialog(false);
-          setEditingQuestionIndex(null);
-        }}
-        onSave={handleSaveQuestion}
-        initialData={editingQuestionIndex !== null ? questions[editingQuestionIndex] : null}
-        maxWidth="sm"
-        loading={loading}
-      />
+          <QuestionDialog
+            open={showQuestionDialog}
+            onClose={loading ? undefined : () => {
+              setShowQuestionDialog(false);
+              setEditingQuestionIndex(null);
+            }}
+            onSave={handleSaveQuestion}
+            initialData={editingQuestionIndex !== null ? questions[editingQuestionIndex] : null}
+            maxWidth="sm"
+            loading={loading}
+          />
     </Box>
   );
 };

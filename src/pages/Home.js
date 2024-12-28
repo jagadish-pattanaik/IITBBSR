@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Grid, Button, Paper } from '@mui/material';
+import { Box, Container, Typography, Grid, Button, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Avatar } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
@@ -6,6 +6,9 @@ import CourseCard from '../components/CourseCard';
 import { School, Code, Group, Timeline, ArrowForward } from '@mui/icons-material';
 import Footer from '../components/Footer';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useFirebase } from '../hooks/useFirebase';
+import { useAuth } from '../contexts/AuthContext';
 
 const HeroSection = styled(Box)(({ theme }) => ({
   position: 'relative',
@@ -106,18 +109,16 @@ const CourseScroller = styled(Box)(({ theme }) => ({
   marginX: theme.spacing(1),
   overflowX: 'auto',
   scrollSnapType: 'x mandatory',
+  className: 'scroll-container',
   '&::-webkit-scrollbar': {
     height: 6,
-    background: theme.palette.mode === 'light'
-      ? theme.palette.grey[200]
-      : theme.palette.grey[900],
-    borderRadius: 3,
+    background: 'transparent',
   },
   '&::-webkit-scrollbar-thumb': {
-    background: theme.palette.primary.main,
+    background: `${theme.palette.primary.main}33`,
     borderRadius: 3,
     '&:hover': {
-      background: theme.palette.primary.dark,
+      background: `${theme.palette.primary.main}4D`,
     },
   },
   '& > *': {
@@ -161,19 +162,26 @@ const ConvenorImage = styled(Box)(({ theme }) => ({
 
 const Home = ({ toggleColorMode }) => {
   const navigate = useNavigate();
+  const { getCourses } = useFirebase();
+  const { currentUser, googleSignIn } = useAuth();
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
 
-  // Mock data - replace with Firebase data later
-  const courses = [
-    {
-      id: 1,
-      title: "Web Development Basics",
-      description: "Learn the fundamentals of web development with HTML, CSS, and JavaScript",
-      image: "/course-images/web-dev.jpg",
-      duration: "8 weeks",
-      level: "Beginner"
-    },
-    // Add more courses...
-  ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const coursesData = await getCourses();
+        // Filter only popular courses
+        const popularCourses = coursesData.filter(course => course.isPopular);
+        setCourses(popularCourses);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      }
+    };
+
+    fetchCourses();
+  }, [getCourses]);
 
   const benefits = [
     {
@@ -198,9 +206,13 @@ const Home = ({ toggleColorMode }) => {
     }
   ];
 
-  const handleCourseClick = () => {
-    // Will be implemented later
-    console.log('Course clicked');
+  const handleCourseClick = (course) => {
+    if (currentUser) {
+      navigate(`/course/${course.id}`);
+    } else {
+      setSelectedCourse(course);
+      setOpenDialog(true);
+    }
   };
 
   const handleContactClick = () => {
@@ -337,7 +349,7 @@ const Home = ({ toggleColorMode }) => {
             ))}
           </Grid>
         </Container>
-      </Box>
+        </Box>
 
       {/* Courses Section */}
       <CourseSection>
@@ -356,34 +368,45 @@ const Home = ({ toggleColorMode }) => {
                 mb: 3,
               }}
             >
-              Explore our curated selection of courses designed to help you master modern development skills.
+              Explore our featured selection of top-rated courses.
             </Typography>
           </motion.div>
 
           <CourseScroller>
-            {courses.map((course, index) => (
-              <motion.div
-                key={course.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+            {courses.length > 0 ? (
+              courses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <CourseCard 
+                    course={course}
+                    onClick={() => handleCourseClick(course)}
+                    sx={{
+                      height: '100%',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                      },
+                    }}
+                  />
+                </motion.div>
+              ))
+            ) : (
+              <Typography 
+                variant="body1" 
+                color="text.secondary" 
+                align="center"
+                sx={{ width: '100%', py: 4 }}
               >
-                <CourseCard 
-                  course={course}
-                  onClick={handleCourseClick}
-                  sx={{
-                    height: '100%',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                    },
-                  }}
-                />
-              </motion.div>
-            ))}
+                No featured courses available at the moment.
+              </Typography>
+            )}
           </CourseScroller>
 
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
+          {/* <Box sx={{ textAlign: 'center', mt: 3 }}>
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -398,52 +421,179 @@ const Home = ({ toggleColorMode }) => {
                 View All Courses
               </StyledButton>
             </motion.div>
-          </Box>
+          </Box> */}
         </Container>
       </CourseSection>
 
-      {/* Our Team Section */}
+        {/* Our Team Section */}
       <TeamSection>
         <Container maxWidth="lg">
-          <motion.div {...fadeInUp}>
-            <SectionTitle variant="h3" gutterBottom>
-              Meet Our Team
-            </SectionTitle>
-          </motion.div>
-
-          <Grid container spacing={6} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-            >
-                <ConvenorImage>
-              <Box
-                component="img"
-                src="/convenor-image.png"
-                alt="Convenor"
-                    sx={{ width: '100%', maxWidth: 500 }}
-              />
-                </ConvenorImage>
-            </motion.div>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-              >
+          <Grid container spacing={6} alignItems="flex-start">
+            {/* Developer Section */}
+            <Grid item xs={12} md={6}>
+              <motion.div {...fadeInUp}>
                 <Typography 
                   variant="h4" 
-                  gutterBottom
+                  gutterBottom 
                   sx={{ 
-                    fontWeight: 700,
-                    mb: 3,
+                    mb: 4,
+                    position: 'relative',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: -8,
+                      left: 0,
+                      width: 40,
+                      height: 3,
+                      borderRadius: 1.5,
+                      backgroundColor: 'primary.main',
+                    },
                   }}
                 >
-                Message from the Convenor
-              </Typography>
+                  Meet the Developer
+                </Typography>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', mb: 3 }}>
+                  <Avatar
+                    src="/developer-image.png"
+                    alt="Developer"
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      border: 3,
+                      borderColor: 'primary.main',
+                    }}
+                  />
+                  <Box>
+                    <Typography 
+                      variant="h6" 
+                      color="primary.main"
+                      sx={{ fontWeight: 600 }}
+                    >
+                      Jagadish Prasad Pattanaik
+                    </Typography>
+                    <Typography 
+                      variant="subtitle2" 
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
+                     Lead & Developer
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <School fontSize="small" />
+                      B.Tech Biotechnology 2020-24
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography 
+                  variant="body1" 
+                  paragraph
+                  sx={{ 
+                    fontSize: '1.1rem',
+                    lineHeight: 1.8,
+                    color: 'text.secondary',
+                    mb: 4,
+                  }}
+                >
+                  "As a passionate developer and student, I developed Progresso to help fellow students learn programming in a structured and engaging way."
+                </Typography>
+              </motion.div>
+            </Grid>
+
+            {/* Convenor Section */}
+            <Grid item xs={12} md={6}>
+              <motion.div {...fadeInUp}>
+                <Typography 
+                  variant="h4" 
+                  gutterBottom 
+                  sx={{ 
+                    mb: 4,
+                    position: 'relative',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: -8,
+                      left: 0,
+                      width: 40,
+                      height: 3,
+                      borderRadius: 1.5,
+                      backgroundColor: 'primary.main',
+                    },
+                  }}
+                >
+                  Message from Convenor
+                </Typography>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', mb: 3 }}>
+                  <Avatar
+                    src="/convenor-image.png"
+                    alt="Convenor"
+                  sx={{ 
+                      width: 100,
+                      height: 100,
+                      border: 3,
+                      borderColor: 'primary.main',
+                    }}
+                  />
+                  <Box>
+                    <Typography 
+                      variant="h6" 
+                      color="primary.main"
+                      sx={{ fontWeight: 600 }}
+                    >
+                  Dr. Jane Smith
+                </Typography>
+                    <Typography 
+                      variant="subtitle2" 
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
+                  Program Convenor
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <School fontSize="small" />
+                      Professor, Department of Computer Science
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mt: 0.5,
+                      }}
+                    >
+                      Ph.D Computer Science, IIT Delhi
+                    </Typography>
+                  </Box>
+                </Box>
                 <Typography 
                   variant="body1" 
                   paragraph
@@ -455,55 +605,116 @@ const Home = ({ toggleColorMode }) => {
                   }}
                 >
                 "We believe in empowering students with the skills and knowledge they need to succeed in the ever-evolving tech industry. Our mission is to provide quality education that bridges the gap between academic learning and industry requirements."
-              </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography 
-                    variant="h6" 
-                    color="primary.main"
-                    sx={{ fontWeight: 600 }}
-                  >
-                Dr. Jane Smith
-              </Typography>
-                  <Box 
-                    sx={{ 
-                      width: 40, 
-                      height: 2, 
-                      bgcolor: 'primary.main',
-                      borderRadius: 1,
-                    }} 
-                  />
-                  <Typography variant="subtitle1" color="text.secondary">
-                Program Convenor
-              </Typography>
-                </Box>
-            </motion.div>
+                </Typography>
+              </motion.div>
+            </Grid>
           </Grid>
-        </Grid>
         </Container>
       </TeamSection>
 
-      {/* Contact Section */}
-      <Box sx={{ my: 8, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom>
-          Love to Hear From You
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Have questions or feedback? We'd love to hear from you.
-        </Typography>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+        {/* Contact Section */}
+        <Box sx={{ my: 8, textAlign: 'center' }}>
+          <Typography variant="h4" gutterBottom>
+            Love to Hear From You
+          </Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>
+            Have questions or feedback? We'd love to hear from you.
+          </Typography>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+            onClick={handleContactClick}
+            >
+              Get in Touch
+            </Button>
+          </motion.div>
+        </Box>
+
+      <Dialog 
+        open={openDialog} 
+        onClose={() => setOpenDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          elevation: 3,
+          sx: {
+            borderRadius: 2,
+            p: 1
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h5" component="div" gutterBottom>
+            {selectedCourse?.title}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body1" paragraph>
+              {selectedCourse?.description}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Duration:</strong> {selectedCourse?.duration}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Level:</strong> {selectedCourse?.level}
+              </Typography>
+            </Box>
+            <Typography 
+              variant="body1" 
+              color="primary" 
+              sx={{ 
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mb: 2
+              }}
+            >
+              <School />
+              This course is completely free!
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Sign in to access this course and many more features including:
+            </Typography>
+            <Box component="ul" sx={{ mt: 1, pl: 2 }}>
+              <li>Full course content access</li>
+              <li>Progress tracking</li>
+              <li>Project submissions</li>
+              <li>Certificates upon completion</li>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button 
+            onClick={() => setOpenDialog(false)}
+            color="inherit"
+          >
+            Close
+          </Button>
           <Button
             variant="contained"
             color="primary"
-            size="large"
-            onClick={handleContactClick}
+            onClick={async () => {
+              setOpenDialog(false);
+              try {
+                await googleSignIn();
+              } catch (error) {
+                console.error('Sign in error:', error);
+              }
+            }}
+            startIcon={<School />}
           >
-            Get in Touch
+            Sign in to Start Learning
           </Button>
-        </motion.div>
-      </Box>
+        </DialogActions>
+      </Dialog>
 
       <Footer />
     </Box>

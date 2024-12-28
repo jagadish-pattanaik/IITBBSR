@@ -24,12 +24,22 @@ import AnimatedPage from '../components/AnimatedPage';
 import BackButton from '../components/BackButton';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirebase } from '../hooks/useFirebase';
+import styled from '@emotion/styled';
 
 const DIFFICULTY_LEVELS = [
   { value: 'Beginner', label: 'Beginner' },
   { value: 'Intermediate', label: 'Intermediate' },
   { value: 'Advanced', label: 'Advanced' }
 ];
+
+const PageContainer = styled(Container)(({ theme }) => ({
+  paddingTop: theme.spacing(12),
+  paddingBottom: theme.spacing(8),
+  overflowX: 'hidden',
+  '& > *': {
+    overflowX: 'hidden'
+  }
+}));
 
 const AllQuizzes = ({ toggleColorMode }) => {
   const { getQuizzes, getUserQuizAttempts } = useFirebase();
@@ -114,7 +124,7 @@ const AllQuizzes = ({ toggleColorMode }) => {
       }}>
         <Header toggleColorMode={toggleColorMode} />
         
-        <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
+        <PageContainer maxWidth="lg" sx={{ flex: 1, position: 'relative' }}>
           <BackButton />
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -198,7 +208,7 @@ const AllQuizzes = ({ toggleColorMode }) => {
               </motion.div>
             </Box>
           )}
-        </Container>
+        </PageContainer>
 
         <Footer />
       </Box>

@@ -1,113 +1,150 @@
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
+import { 
+  Dialog, 
+  DialogTitle, 
   DialogContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
   Box,
   Typography,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Chip,
-  CircularProgress,
-  Divider
+  IconButton
 } from '@mui/material';
-import { EmojiEvents, Workspace } from '@mui/icons-material';
-import { useFirebase } from '../hooks/useFirebase';
+import { Close, EmojiEvents } from '@mui/icons-material';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 const LeaderboardDialog = ({ open, onClose, quizId, userAttempt }) => {
-  const { getQuizLeaderboard } = useFirebase();
+  const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [rankings, setRankings] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      if (!open) return;
+      if (!quizId || !open) return;
       
       try {
         setLoading(true);
-        const data = await getQuizLeaderboard(quizId);
-        setRankings(data);
-      } catch (error) {
-        console.error('Error fetching leaderboard:', error);
+        setError(null);
+        
+        const leaderboardRef = doc(db, 'quizLeaderboard', quizId);
+        const leaderboardDoc = await getDoc(leaderboardRef);
+        
+        if (leaderboardDoc.exists()) {
+          const entries = leaderboardDoc.data().entries || [];
+          setLeaderboard(entries);
+        } else {
+          setLeaderboard([]);
+        }
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+        setError('Failed to load leaderboard');
       } finally {
         setLoading(false);
       }
     };
 
     fetchLeaderboard();
-  }, [quizId, open, getQuizLeaderboard]);
-
-  const renderRankItem = (rank, index) => {
-    const isTop3 = index < 3;
-    const isCurrentUser = rank.userId === userAttempt?.userId;
-
-    return (
-      <ListItem
-        key={rank.userId}
-        sx={{
-          bgcolor: isCurrentUser ? 'action.selected' : 'transparent',
-          borderRadius: 1
-        }}
-      >
-        <ListItemAvatar>
-          {isTop3 ? (
-            <Avatar sx={{ 
-              bgcolor: ['#FFD700', '#C0C0C0', '#CD7F32'][index]
-            }}>
-              <EmojiEvents />
-            </Avatar>
-          ) : (
-            <Avatar>{index + 1}</Avatar>
-          )}
-        </ListItemAvatar>
-        <ListItemText
-          primary={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography>{rank.userName}</Typography>
-              {isCurrentUser && (
-                <Chip size="small" label="You" color="primary" />
-              )}
-            </Box>
-          }
-          secondary={`Score: ${rank.score} points • Time: ${Math.floor(rank.timeSpent / 60)}:${String(rank.timeSpent % 60).padStart(2, '0')}`}
-        />
-      </ListItem>
-    );
-  };
+  }, [quizId, open]);
 
   return (
     <Dialog 
       open={open} 
       onClose={onClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          overflow: 'hidden'
+        }
+      }}
     >
-      <DialogTitle>Leaderboard</DialogTitle>
-      <DialogContent>
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        pb: 1
+      }}>
+        <Typography variant="h6">Leaderboard</Typography>
+        <IconButton onClick={onClose} size="small">
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      
+      <DialogContent sx={{ p: 0 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            py: 4 
+          }}>
             <CircularProgress />
           </Box>
-        ) : rankings.length > 0 ? (
-          <List>
-            {rankings.map((rank, index) => (
-              <Box key={rank.userId}>
-                {index === 3 && (
-                  <Divider sx={{ my: 2 }}>
-                    <Chip label="Other Rankings" />
-                  </Divider>
-                )}
-                {renderRankItem(rank, index)}
-              </Box>
-            ))}
-          </List>
+        ) : error ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography color="error">{error}</Typography>
+          </Box>
         ) : (
-          <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-            No attempts yet
-          </Typography>
+          <TableContainer component={Paper} elevation={0}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Rank</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell align="right">Score</TableCell>
+                  <TableCell align="right">Time</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {leaderboard.map((entry, index) => (
+                  <TableRow 
+                    key={index}
+                    sx={{ 
+                      bgcolor: entry.userId === userAttempt?.userId ? 'action.hover' : 'inherit',
+                      '&:last-child td, &:last-child th': { border: 0 }
+                    }}
+                  >
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        #{index + 1}
+                        {index < 3 && (
+                          <EmojiEvents 
+                            sx={{ 
+                              color: 
+                                index === 0 ? 'warning.main' : 
+                                index === 1 ? 'grey.400' :
+                                'brown'
+                            }} 
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>{entry.userName}</TableCell>
+                    <TableCell align="right">{entry.score}</TableCell>
+                    <TableCell align="right">
+                      {Math.floor(entry.timeSpent / 60)}:{(entry.timeSpent % 60).toString().padStart(2, '0')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {leaderboard.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">
+                        No entries yet. Be the first to complete this quiz!
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </DialogContent>
     </Dialog>

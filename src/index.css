@@ -16,24 +16,64 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/* Scrollbar styles */
+/* Update the scrollbar styles */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: transparent;
+  border-radius: 8px;
+  margin: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #0000CB;
-  border-radius: 4px;
+  background: rgba(0, 0, 203, 0.2);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #000099;
+  background: rgba(0, 0, 203, 0.3);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Hide scrollbar when not needed */
+@media screen and (min-height: 100vh) {
+  body:not(.has-scroll) {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  body:not(.has-scroll)::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 203, 0.2) transparent;
+}
+
+/* For horizontal scrolling containers like CourseScroller */
+.scroll-container::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 203, 0.2);
+  border-radius: 3px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 203, 0.3);
 }
 
 html, body {
@@ -46,4 +86,18 @@ html, body {
   overflow-x: hidden;
   position: relative;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Add this to prevent horizontal overflow during animations */
+.MuiContainer-root {
+  overflow-x: hidden;
+}
+
+/* Add this to ensure Grid items don't cause overflow */
+.MuiGrid-root {
+  margin: 0;
+  width: 100%;
 }

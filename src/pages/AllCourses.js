@@ -24,6 +24,16 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import { useFirebase } from '../hooks/useFirebase';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/BackButton';
+import styled from '@emotion/styled';
+
+const PageContainer = styled(Container)(({ theme }) => ({
+  paddingTop: theme.spacing(12),
+  paddingBottom: theme.spacing(8),
+  overflowX: 'hidden',
+  '& > *': {
+    overflowX: 'hidden'
+  }
+}));
 
 const AllCourses = ({ toggleColorMode }) => {
   const navigate = useNavigate();
@@ -90,7 +100,7 @@ const AllCourses = ({ toggleColorMode }) => {
       }}>
         <Header toggleColorMode={toggleColorMode} />
         
-        <Container maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
+        <PageContainer maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
           <BackButton />
           <LoadingOverlay loading={loading} />
 
@@ -164,7 +174,7 @@ const AllCourses = ({ toggleColorMode }) => {
               </Grid>
             </motion.div>
           </Box>
-        </Container>
+        </PageContainer>
 
         <Footer />
       </Box>

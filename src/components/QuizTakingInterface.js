@@ -104,14 +104,14 @@ const QuestionDisplay = ({ question, userAnswer, onAnswer, showFeedback = false 
       return (
         <Box sx={{ mt: 3 }}>
           <StyledTextField
-            fullWidth
-            multiline
+          fullWidth
+          multiline
             rows={4}
-            variant="outlined"
-            label="Your Answer"
-            value={userAnswer || ''}
-            onChange={(e) => handleTextAnswer(e.target.value)}
-            placeholder="Type your answer here..."
+          variant="outlined"
+          label="Your Answer"
+          value={userAnswer || ''}
+          onChange={(e) => handleTextAnswer(e.target.value)}
+          placeholder="Type your answer here..."
             helperText={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {question.caseSensitive && (
@@ -152,13 +152,13 @@ const QuestionDisplay = ({ question, userAnswer, onAnswer, showFeedback = false 
       return (
         <Box sx={{ mt: 3 }}>
           <StyledTextField
-            fullWidth
+          fullWidth
             type="text" // Changed from "number" to allow better control
-            variant="outlined"
-            label="Your Answer"
-            value={userAnswer || ''}
-            onChange={(e) => handleTextAnswer(e.target.value)}
-            placeholder="Enter a number..."
+          variant="outlined"
+          label="Your Answer"
+          value={userAnswer || ''}
+          onChange={(e) => handleTextAnswer(e.target.value)}
+          placeholder="Enter a number..."
             helperText={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography 
@@ -789,42 +789,42 @@ const QuizTakingInterface = ({ quiz, onSubmit }) => {
                   mb: 3,
                 }}
               >
-                {quiz.questions[currentQuestion].text}
-              </Typography>
+            {quiz.questions[currentQuestion].text}
+          </Typography>
 
-              <QuestionDisplay
-                question={quiz.questions[currentQuestion]}
-                userAnswer={answers[quiz.questions[currentQuestion].id]}
-                onAnswer={(answer) => handleAnswer(quiz.questions[currentQuestion].id, answer)}
-              />
+            <QuestionDisplay
+              question={quiz.questions[currentQuestion]}
+              userAnswer={answers[quiz.questions[currentQuestion].id]}
+              onAnswer={(answer) => handleAnswer(quiz.questions[currentQuestion].id, answer)}
+            />
 
               <NavigationButtons>
-                <Button
-                  startIcon={<NavigateBefore />}
-                  onClick={() => setCurrentQuestion(prev => prev - 1)}
-                  disabled={currentQuestion === 0}
+            <Button
+              startIcon={<NavigateBefore />}
+              onClick={() => setCurrentQuestion(prev => prev - 1)}
+              disabled={currentQuestion === 0}
                   variant="outlined"
-                >
-                  Previous
-                </Button>
-                {currentQuestion === quiz.questions.length - 1 ? (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => setShowConfirmSubmit(true)}
+            >
+              Previous
+            </Button>
+            {currentQuestion === quiz.questions.length - 1 ? (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => setShowConfirmSubmit(true)}
                     endIcon={<Send />}
-                  >
-                    Submit Quiz
-                  </Button>
-                ) : (
-                  <Button
-                    endIcon={<NavigateNext />}
-                    variant="contained"
-                    onClick={() => setCurrentQuestion(prev => prev + 1)}
-                  >
-                    Next
-                  </Button>
-                )}
+              >
+                Submit Quiz
+              </Button>
+            ) : (
+              <Button
+                endIcon={<NavigateNext />}
+                variant="contained"
+                onClick={() => setCurrentQuestion(prev => prev + 1)}
+              >
+                Next
+              </Button>
+            )}
               </NavigationButtons>
             </QuestionCard>
           </QuestionContainer>

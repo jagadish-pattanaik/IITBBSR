@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   }, [adminOnly, currentUser]);
 
   if (!currentUser) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
   if (loading) {

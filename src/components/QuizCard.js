@@ -86,6 +86,11 @@ const QuizCard = ({ quiz, userAttempt }) => {
     navigate(`/quiz/${quiz.id}/result/${userAttempt.id}`);
   };
 
+  const handleLeaderboardClick = (e) => {
+    e.stopPropagation();
+    setShowLeaderboard(true);
+  };
+
   const renderActionButton = () => {
     if (quiz.type === 'external') {
       return (
@@ -119,7 +124,7 @@ const QuizCard = ({ quiz, userAttempt }) => {
           variant="contained"
           color="secondary"
           startIcon={<EmojiEvents />}
-          onClick={() => setShowLeaderboard(true)}
+          onClick={handleLeaderboardClick}
         >
           View Leaderboard
         </Button>
@@ -133,7 +138,7 @@ const QuizCard = ({ quiz, userAttempt }) => {
           variant="outlined"
           color="secondary"
           startIcon={<EmojiEvents />}
-          onClick={() => setShowLeaderboard(true)}
+          onClick={handleLeaderboardClick}
         >
           View Results
         </Button>
