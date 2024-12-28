@@ -11,7 +11,8 @@ import {
   MenuItem,
   Stack,
   Alert,
-  Button
+  Button,
+  InputAdornment
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
 import Header from '../components/Header';
@@ -32,6 +33,23 @@ const PageContainer = styled(Container)(({ theme }) => ({
   overflowX: 'hidden',
   '& > *': {
     overflowX: 'hidden'
+  }
+}));
+
+const FiltersContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  gap: theme.spacing(2),
+  marginBottom: theme.spacing(3),
+  flexWrap: 'wrap',
+  alignItems: 'center'
+}));
+
+const SearchField = styled(TextField)(({ theme }) => ({
+  flex: 1,
+  minWidth: 200,
+  maxWidth: '100%',
+  '& .MuiOutlinedInput-root': {
+    borderRadius: theme.shape.borderRadius,
   }
 }));
 
@@ -79,7 +97,7 @@ const AllCourses = ({ toggleColorMode }) => {
     return courses.filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesLevel = levelFilter === 'all' || course.level === levelFilter;
+      const matchesLevel = levelFilter === 'all' || course.level.toLowerCase() === levelFilter.toLowerCase();
       return matchesSearch && matchesLevel;
     });
   }, [courses, searchTerm, levelFilter]);
@@ -100,7 +118,7 @@ const AllCourses = ({ toggleColorMode }) => {
       }}>
         <Header toggleColorMode={toggleColorMode} />
         
-        <PageContainer maxWidth="lg" sx={{ mt: 12, mb: 4, flex: 1, position: 'relative' }}>
+        <PageContainer maxWidth="lg" sx={{ flex: 1, position: 'relative' }}>
           <BackButton />
           <LoadingOverlay loading={loading} />
 
@@ -129,17 +147,21 @@ const AllCourses = ({ toggleColorMode }) => {
               </Typography>
 
               <Box sx={{ mb: 4 }}>
-                <Stack spacing={2}>
-                  <TextField
-                    fullWidth
-                    placeholder="Search courses by title or description..."
+                <FiltersContainer>
+                  <SearchField
+                    size="small"
+                    placeholder="Search courses..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
-                      startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search />
+                        </InputAdornment>
+                      ),
                     }}
                   />
-                  <FormControl fullWidth>
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
                     <InputLabel>Level</InputLabel>
                     <Select
                       value={levelFilter}
@@ -147,12 +169,12 @@ const AllCourses = ({ toggleColorMode }) => {
                       onChange={(e) => setLevelFilter(e.target.value)}
                     >
                       <MenuItem value="all">All Levels</MenuItem>
-                      {levels.map(level => (
-                        <MenuItem key={level} value={level}>{level}</MenuItem>
-                      ))}
+                      <MenuItem value="beginner">Beginner</MenuItem>
+                      <MenuItem value="intermediate">Intermediate</MenuItem>
+                      <MenuItem value="advanced">Advanced</MenuItem>
                     </Select>
                   </FormControl>
-                </Stack>
+                </FiltersContainer>
               </Box>
 
               <Grid container spacing={3}>

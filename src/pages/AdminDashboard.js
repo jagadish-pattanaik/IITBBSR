@@ -144,7 +144,7 @@ const AdminDashboard = ({ toggleColorMode }) => {
       setLoading(true);
       setError(null);
       
-      // Fetch users and submissions in parallel
+      // Fetch all data in parallel
       const [usersData, submissionsSnapshot, coursesData, quizzesData] = await Promise.all([
         getUsers(),
         getDocs(collection(db, 'submissions')),

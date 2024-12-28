@@ -24,31 +24,25 @@ import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   const location = useLocation();
-  const [mode, setMode] = useState(() => {
-    // Get theme from localStorage or default to 'light'
-    return localStorage.getItem('theme') || 'light';
-  });
+  const [mode, setMode] = useState('dark');
 
-  const toggleColorMode = useCallback(() => {
-    setMode((prevMode) => {
-      const newMode = prevMode === 'light' ? 'dark' : 'light';
-      localStorage.setItem('theme', newMode); // Save to localStorage
-      return newMode;
-    });
-  }, []);
+  const colorMode = useMemo(
+    () => ({
+      toggleColorMode: () => {
+        setMode((prevMode) => {
+          const newMode = prevMode === 'light' ? 'dark' : 'light';
+          localStorage.setItem('themeMode', newMode);
+          return newMode;
+        });
+      },
+    }),
+    [],
+  );
 
-  // Listen for system theme changes
+  // Load saved theme preference
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e) => {
-      const systemTheme = e.matches ? 'dark' : 'light';
-      if (!localStorage.getItem('theme')) {
-        setMode(systemTheme);
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    const savedMode = localStorage.getItem('themeMode') || 'dark';
+    setMode(savedMode);
   }, []);
 
   const theme = useMemo(
@@ -251,12 +245,12 @@ function App() {
           <ScrollToTop />
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
-              <Route path="/" element={<Home toggleColorMode={toggleColorMode} />} />
+              <Route path="/" element={<Home toggleColorMode={colorMode.toggleColorMode} />} />
               <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard toggleColorMode={toggleColorMode} />
+                    <Dashboard toggleColorMode={colorMode.toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -264,7 +258,7 @@ function App() {
                 path="/course/:courseId"
                 element={
                   <ProtectedRoute>
-                    <CoursePage toggleColorMode={toggleColorMode} />
+                    <CoursePage toggleColorMode={colorMode.toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -272,7 +266,7 @@ function App() {
                 path="/admin"
                 element={
                   <ProtectedRoute adminOnly>
-                    <AdminDashboard toggleColorMode={toggleColorMode} />
+                    <AdminDashboard toggleColorMode={colorMode.toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -280,7 +274,7 @@ function App() {
                 path="/quizzes"
                 element={
                   <ProtectedRoute>
-                    <AllQuizzes toggleColorMode={toggleColorMode} />
+                    <AllQuizzes toggleColorMode={colorMode.toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -288,7 +282,7 @@ function App() {
                 path="/courses"
                 element={
                   <ProtectedRoute>
-                    <AllCourses toggleColorMode={toggleColorMode} />
+                    <AllCourses toggleColorMode={colorMode.toggleColorMode} />
                   </ProtectedRoute>
                 }
               />
@@ -296,7 +290,7 @@ function App() {
                 path="/quiz/:quizId" 
                 element={
                   <ProtectedRoute>
-                    <QuizPage toggleColorMode={toggleColorMode} />
+                    <QuizPage toggleColorMode={colorMode.toggleColorMode} />
                   </ProtectedRoute>
                 } 
               />
@@ -304,7 +298,7 @@ function App() {
                 path="/quiz/:quizId/result/:attemptId" 
                 element={
                   <ProtectedRoute>
-                    <QuizResult toggleColorMode={toggleColorMode} />
+                    <QuizResult toggleColorMode={colorMode.toggleColorMode} />
                   </ProtectedRoute>
                 } 
               />

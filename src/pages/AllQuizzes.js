@@ -12,7 +12,8 @@ import {
   Stack,
   Alert,
   Button,
-  CircularProgress
+  CircularProgress,
+  InputAdornment
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
 import Header from '../components/Header';
@@ -27,9 +28,9 @@ import { useFirebase } from '../hooks/useFirebase';
 import styled from '@emotion/styled';
 
 const DIFFICULTY_LEVELS = [
-  { value: 'Beginner', label: 'Beginner' },
-  { value: 'Intermediate', label: 'Intermediate' },
-  { value: 'Advanced', label: 'Advanced' }
+  { value: 'beginner', label: 'Beginner' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'advanced', label: 'Advanced' }
 ];
 
 const PageContainer = styled(Container)(({ theme }) => ({
@@ -38,6 +39,23 @@ const PageContainer = styled(Container)(({ theme }) => ({
   overflowX: 'hidden',
   '& > *': {
     overflowX: 'hidden'
+  }
+}));
+
+const FiltersContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  gap: theme.spacing(2),
+  marginBottom: theme.spacing(3),
+  flexWrap: 'wrap',
+  alignItems: 'center'
+}));
+
+const SearchField = styled(TextField)(({ theme }) => ({
+  flex: 1,
+  minWidth: 200,
+  maxWidth: '100%',
+  '& .MuiOutlinedInput-root': {
+    borderRadius: theme.shape.borderRadius,
   }
 }));
 
@@ -104,7 +122,8 @@ const AllQuizzes = ({ toggleColorMode }) => {
 
       const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           quiz.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesLevel = levelFilter === 'all' || quiz.level === levelFilter;
+      const matchesLevel = levelFilter === 'all' || 
+                          quiz.level.toLowerCase() === levelFilter.toLowerCase();
       const matchesStatus = statusFilter === 'all' || 
                           (statusFilter === 'active' && isActive) ||
                           (statusFilter === 'recent' && isRecentlyExpired);
@@ -146,46 +165,48 @@ const AllQuizzes = ({ toggleColorMode }) => {
                 </Typography>
 
                 <Box sx={{ mb: 4 }}>
-                  <Stack spacing={2}>
-                    <TextField
-                      fullWidth
-                      placeholder="Search quizzes by title or description..."
+                  <FiltersContainer>
+                    <SearchField
+                      size="small"
+                      placeholder="Search quizzes..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       InputProps={{
-                        startAdornment: <Search sx={{ color: 'text.secondary', mr: 1 }} />
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Search />
+                          </InputAdornment>
+                        ),
                       }}
                     />
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <FormControl fullWidth>
-                        <InputLabel>Level</InputLabel>
-                        <Select
-                          value={levelFilter}
-                          label="Level"
-                          onChange={(e) => setLevelFilter(e.target.value)}
-                        >
-                          <MenuItem value="all">All Levels</MenuItem>
-                          {DIFFICULTY_LEVELS.map(level => (
-                            <MenuItem key={level.value} value={level.value}>
-                              {level.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <FormControl fullWidth>
-                        <InputLabel>Status</InputLabel>
-                        <Select
-                          value={statusFilter}
-                          label="Status"
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                        >
-                          <MenuItem value="all">All</MenuItem>
-                          <MenuItem value="active">Active</MenuItem>
-                          <MenuItem value="recent">Recently Expired</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Box>
-                  </Stack>
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                      <InputLabel>Difficulty</InputLabel>
+                      <Select
+                        value={levelFilter}
+                        label="Difficulty"
+                        onChange={(e) => setLevelFilter(e.target.value)}
+                      >
+                        <MenuItem value="all">All Difficulties</MenuItem>
+                        {DIFFICULTY_LEVELS.map(level => (
+                          <MenuItem key={level.value} value={level.value}>
+                            {level.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={statusFilter}
+                        label="Status"
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                      >
+                        <MenuItem value="all">All Status</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="recent">Recently Expired</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </FiltersContainer>
                 </Box>
 
                 <Grid container spacing={3}>

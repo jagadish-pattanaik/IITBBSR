@@ -526,7 +526,7 @@ const Home = ({ toggleColorMode }) => {
                       }}
                     >
                       <School fontSize="small" />
-                      B.Tech Biotechnology 2020-24
+                      B.Tech Biotechnology 2024-28
                     </Typography>
                   </Box>
                 </Box>

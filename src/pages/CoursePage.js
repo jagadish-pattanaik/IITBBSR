@@ -51,7 +51,8 @@ import {
   collection,
   updateDoc, 
   increment, 
-  serverTimestamp 
+  serverTimestamp,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { Link } from 'react-router-dom';
@@ -60,8 +61,8 @@ import { styled } from '@mui/material/styles';
 import LoadingShimmer from '../components/LoadingShimmer';
 
 const CourseContainer = styled(Container)(({ theme }) => ({
-  paddingTop: theme.spacing(8),
-  paddingBottom: theme.spacing(4),
+  paddingTop: theme.spacing(12),
+  paddingBottom: theme.spacing(8),
 }));
 
 const ContentSection = styled(Paper)(({ theme }) => ({
@@ -372,35 +373,45 @@ const CoursePage = () => {
   };
 
   const handleProjectSubmit = async (githubLink) => {
+    if (!currentUser?.uid || !selectedProject) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      const submission = {
+      const submissionData = {
         userId: currentUser.uid,
+        userName: currentUser.displayName,
         courseId: courseId,
         courseTitle: course.title,
         projectId: selectedProject.id,
         projectTitle: selectedProject.title,
-        githubLink: githubLink,
+        githubLink,
         status: 'pending',
         submittedAt: serverTimestamp()
       };
 
-      // Debug log
-      console.log('Creating submission:', submission);
+      // Add submission with auto-generated ID instead of custom ID
+      const submissionRef = await addDoc(collection(db, 'submissions'), submissionData);
 
-      const submissionRef = await addDoc(collection(db, 'submissions'), submission);
-      console.log('Submission created with ID:', submissionRef.id);
-      
       // Update user's project count
       await updateDoc(doc(db, 'users', currentUser.uid), {
         'progress.projectsSubmitted': increment(1)
       });
 
+      // Update local state
+      setProjectSubmissions(prev => ({
+        ...prev,
+        [selectedProject.id]: {
+          ...submissionData,
+          id: submissionRef.id,
+          submittedAt: new Date()
+        }
+      }));
+
       setShowProjectDialog(false);
-      // Show success message
       setSuccess('Project submitted successfully!');
+      setSelectedProject(null);
     } catch (error) {
       console.error('Error submitting project:', error);
       setError('Failed to submit project. Please try again.');
@@ -493,19 +504,26 @@ const CoursePage = () => {
     if (!currentUser?.uid) return;
 
     try {
+      // Check if video is already completed
+      if (completedVideos.has(videoId)) return;
+
       const userRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+      
+      // Check if this video was already completed
+      const videoKey = `${course.id}_${videoId}`;
+      if (userData?.completedVideos?.[videoKey]) return;
+
       await updateDoc(userRef, {
-        [`completedVideos.${course.id}_${videoId}`]: serverTimestamp(),
+        [`completedVideos.${videoKey}`]: serverTimestamp(),
         'progress.videosWatched': increment(1)
       });
 
-      // Immediately update local state
+      // Update local state
       setCompletedVideos(prev => new Set([...prev, videoId]));
-
-      // Check course completion after video is watched
-      checkCourseCompletion();
     } catch (error) {
-      console.error('Error updating video progress:', error);
+      console.error('Error updating video completion:', error);
     }
   };
 
