@@ -263,7 +263,7 @@ const Header = ({ toggleColorMode }) => {
                 color="primary"
                 onClick={handleAuthAction}
               >
-                {currentUser ? 'Go to Dashboard' : 'Login with Google'}
+                {currentUser ? 'Go to Dashboard' : 'Sign in with Google'}
               </NavButton>
             </motion.div>
           )}

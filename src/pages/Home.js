@@ -30,6 +30,7 @@ const HeroSection = styled(Box)(({ theme }) => ({
 
 const BenefitCard = styled(motion(Paper))(({ theme }) => ({
   height: '100%',
+  minHeight: 280,
   padding: theme.spacing(4),
   display: 'flex',
   flexDirection: 'column',
@@ -43,6 +44,19 @@ const BenefitCard = styled(motion(Paper))(({ theme }) => ({
     fontSize: 40,
     color: theme.palette.primary.main,
     marginBottom: theme.spacing(2),
+  },
+  '& .MuiTypography-h6': {
+    marginBottom: theme.spacing(2),
+    minHeight: 56,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  '& .MuiTypography-body2': {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   '&:hover': {
     transform: 'translateY(-8px)',
@@ -104,8 +118,8 @@ const CourseSection = styled(Box)(({ theme }) => ({
 
 const CourseScroller = styled(Box)(({ theme }) => ({
   display: 'flex',
-  gap: theme.spacing(2),
-  padding: theme.spacing(1),
+  gap: theme.spacing(4),
+  padding: theme.spacing(2),
   marginX: theme.spacing(1),
   overflowX: 'auto',
   scrollSnapType: 'x mandatory',
@@ -113,6 +127,7 @@ const CourseScroller = styled(Box)(({ theme }) => ({
   '&::-webkit-scrollbar': {
     height: 6,
     background: 'transparent',
+    marginTop: theme.spacing(2),
   },
   '&::-webkit-scrollbar-thumb': {
     background: `${theme.palette.primary.main}33`,
@@ -130,7 +145,7 @@ const CourseScroller = styled(Box)(({ theme }) => ({
 }));
 
 const TeamSection = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(8, 0),
+  padding: theme.spacing(8, 0, 4, 0),
   background: theme.palette.mode === 'light'
     ? theme.palette.background.paper
     : theme.palette.background.default,
@@ -218,6 +233,23 @@ const Home = ({ toggleColorMode }) => {
   const handleContactClick = () => {
     // Will be implemented later
     console.log('Contact clicked');
+  };
+
+  const handleAuthAction = async () => {
+    if (currentUser) {
+      navigate('/dashboard');
+    } else {
+      try {
+        const result = await googleSignIn();
+        if (result.isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+      }
+    }
   };
 
   return (
@@ -613,7 +645,7 @@ const Home = ({ toggleColorMode }) => {
       </TeamSection>
 
         {/* Contact Section */}
-        <Box sx={{ my: 8, textAlign: 'center' }}>
+        <Box sx={{ my: 4, textAlign: 'center' }}>
           <Typography variant="h4" gutterBottom>
             Love to Hear From You
           </Typography>
@@ -628,7 +660,7 @@ const Home = ({ toggleColorMode }) => {
               variant="contained"
               color="primary"
               size="large"
-            onClick={handleContactClick}
+              onClick={handleContactClick}
             >
               Get in Touch
             </Button>
@@ -704,7 +736,7 @@ const Home = ({ toggleColorMode }) => {
             onClick={async () => {
               setOpenDialog(false);
               try {
-                await googleSignIn();
+                handleAuthAction();
               } catch (error) {
                 console.error('Sign in error:', error);
               }

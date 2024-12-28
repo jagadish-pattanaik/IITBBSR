@@ -127,11 +127,13 @@ const LoadingState = () => (
 );
 
 const AdminDashboard = ({ toggleColorMode }) => {
-  const { getUsers } = useFirebase();
+  const { getUsers, getCourses, getQuizzes} = useFirebase();
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [users, setUsers] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -143,9 +145,11 @@ const AdminDashboard = ({ toggleColorMode }) => {
       setError(null);
       
       // Fetch users and submissions in parallel
-      const [usersData, submissionsSnapshot] = await Promise.all([
+      const [usersData, submissionsSnapshot, coursesData, quizzesData] = await Promise.all([
         getUsers(),
-        getDocs(collection(db, 'submissions'))
+        getDocs(collection(db, 'submissions')),
+        getCourses(),
+        getQuizzes()
       ]);
 
       setUsers(usersData || []);
@@ -156,6 +160,9 @@ const AdminDashboard = ({ toggleColorMode }) => {
       }));
       setSubmissions(submissionsData);
 
+      setCourses(coursesData || []);
+      setQuizzes(quizzesData || []);
+
       setDataFetched(true);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -163,7 +170,7 @@ const AdminDashboard = ({ toggleColorMode }) => {
     } finally {
       setLoading(false);
     }
-  }, [getUsers]);
+  }, [getUsers, getCourses, getQuizzes]);
 
   useEffect(() => {
     if (!dataFetched) {
@@ -231,24 +238,31 @@ const AdminDashboard = ({ toggleColorMode }) => {
     {
       icon: <People fontSize="large" />,
       title: 'Total Users',
-      getValue: (data) => data.users.length,
+      getValue: (data) => data?.users?.length || 0,
     },
     {
       icon: <School fontSize="large" />,
       title: 'Active Courses',
-      getValue: (data) => data.courses?.length || 0,
+      getValue: (data) => data?.courses?.length || 0,
     },
     {
       icon: <Assignment fontSize="large" />,
       title: 'Pending Reviews',
-      getValue: (data) => data.submissions.filter(s => s.status === 'pending').length,
+      getValue: (data) => data?.submissions?.filter(s => s.status === 'pending')?.length || 0,
     },
     {
       icon: <Quiz fontSize="large" />,
       title: 'Active Quizzes',
-      getValue: (data) => data.quizzes?.length || 0,
+      getValue: (data) => data?.quizzes?.length || 0,
     },
   ];
+
+  const data = {
+    users: users || [],
+    submissions: submissions || [],
+    courses: courses || [],
+    quizzes: quizzes || []
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -271,19 +285,15 @@ const AdminDashboard = ({ toggleColorMode }) => {
 
           {/* Stats Overview */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            {statCards.map((stat, index) => (
+            {statCards.map((card, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <StatCard>
-                  {stat.icon}
-                  <Typography variant="h4" sx={{ mt: 1 }}>
-                    {loading ? (
-                      <LoadingShimmer width={60} height={40} />
-                    ) : (
-                      stat.getValue({ users, submissions })
-                    )}
+                  {card.icon}
+                  <Typography variant="h5" sx={{ mb: 1 }}>
+                    {loading ? <CircularProgress size={20} /> : card.getValue(data)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {stat.title}
+                    {card.title}
                   </Typography>
                 </StatCard>
               </Grid>
