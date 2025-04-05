@@ -118,7 +118,7 @@ const Footer = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Email color="action" fontSize="small" />
                 <Typography variant="body2" color="text.secondary">
-                  support@progresso.com
+                  support@AcademIX.com
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -157,7 +157,7 @@ const Footer = () => {
           color="text.secondary"
           align="center"
         >
-          © {new Date().getFullYear()} Progresso. All rights reserved.
+          © {new Date().getFullYear()} AcademIX. All rights reserved.
         </Typography>
       </Container>
     </StyledFooter>

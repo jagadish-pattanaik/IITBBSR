@@ -123,7 +123,7 @@ const Header = ({ toggleColorMode }) => {
             <Box
               component="img"
               src={logoError ? '/default-logo.png' : '/logo.png'}
-              alt="Progresso"
+              alt="AcademIX"
               sx={{ 
                 height: 40, 
                 cursor: 'pointer',
@@ -157,19 +157,6 @@ const Header = ({ toggleColorMode }) => {
           <ThemeToggle onClick={toggleColorMode} color="inherit">
             {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
           </ThemeToggle>
-          
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <NavButton
-              variant="outlined"
-              color="primary"
-              onClick={() => window.open('https://official-website.com', '_blank')}
-            >
-              Official Website
-            </NavButton>
-          </motion.div>
 
           {currentUser ? (
             <Box sx={{ display: 'flex', gap: 1 }}>

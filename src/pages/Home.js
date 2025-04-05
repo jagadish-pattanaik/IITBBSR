@@ -201,7 +201,7 @@ const Home = ({ toggleColorMode }) => {
   const benefits = [
     {
       icon: <School fontSize="large" />,
-      title: "Expert-Led Learning",
+      title: "Courses",
       description: "Learn from industry professionals with years of experience"
     },
     {
@@ -211,8 +211,8 @@ const Home = ({ toggleColorMode }) => {
     },
     {
       icon: <Group fontSize="large" />,
-      title: "Community Support",
-      description: "Join a community of like-minded learners"
+      title: "Quizzes",
+      description: "Test your knowledge and get instant feedback"
     },
     {
       icon: <Timeline fontSize="large" />,
@@ -294,7 +294,7 @@ const Home = ({ toggleColorMode }) => {
                       }
                     }}
                   >
-                    Progresso.
+                    AcademIX.
                   </Box>
                 </Typography>
                 <Typography 
@@ -306,7 +306,7 @@ const Home = ({ toggleColorMode }) => {
                     lineHeight: 1.6
                   }}
                 >
-                  Your journey to becoming a skilled developer starts here.
+                  Your journey to academic excellence starts here.
                 </Typography>
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <StyledButton
@@ -347,7 +347,7 @@ const Home = ({ toggleColorMode }) => {
         <Container maxWidth="lg">
           <motion.div {...fadeInUp}>
             <SectionTitle variant="h3" gutterBottom>
-              Why Choose Progresso?
+              Why Choose AcademIX?
             </SectionTitle>
           </motion.div>
           
@@ -456,194 +456,6 @@ const Home = ({ toggleColorMode }) => {
           </Box> */}
         </Container>
       </CourseSection>
-
-        {/* Our Team Section */}
-      <TeamSection>
-        <Container maxWidth="lg">
-          <Grid container spacing={6} alignItems="flex-start">
-            {/* Developer Section */}
-            <Grid item xs={12} md={6}>
-              <motion.div {...fadeInUp}>
-                <Typography 
-                  variant="h4" 
-                  gutterBottom 
-                  sx={{ 
-                    mb: 4,
-                    position: 'relative',
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: -8,
-                      left: 0,
-                      width: 40,
-                      height: 3,
-                      borderRadius: 1.5,
-                      backgroundColor: 'primary.main',
-                    },
-                  }}
-                >
-                  Meet the Developer
-                </Typography>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-              >
-                <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', mb: 3 }}>
-                  <Avatar
-                    src="/developer-image.png"
-                    alt="Developer"
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      border: 3,
-                      borderColor: 'primary.main',
-                    }}
-                  />
-                  <Box>
-                    <Typography 
-                      variant="h6" 
-                      color="primary.main"
-                      sx={{ fontWeight: 600 }}
-                    >
-                      Jagadish Prasad Pattanaik
-                    </Typography>
-                    <Typography 
-                      variant="subtitle2" 
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                     Lead & Developer
-                    </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                      }}
-                    >
-                      <School fontSize="small" />
-                      B.Tech Biotechnology 2024-28
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography 
-                  variant="body1" 
-                  paragraph
-                  sx={{ 
-                    fontSize: '1.1rem',
-                    lineHeight: 1.8,
-                    color: 'text.secondary',
-                    mb: 4,
-                  }}
-                >
-                  "As a passionate developer and student, I developed Progresso to help fellow students learn programming in a structured and engaging way."
-                </Typography>
-              </motion.div>
-            </Grid>
-
-            {/* Convenor Section */}
-            <Grid item xs={12} md={6}>
-              <motion.div {...fadeInUp}>
-                <Typography 
-                  variant="h4" 
-                  gutterBottom 
-                  sx={{ 
-                    mb: 4,
-                    position: 'relative',
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: -8,
-                      left: 0,
-                      width: 40,
-                      height: 3,
-                      borderRadius: 1.5,
-                      backgroundColor: 'primary.main',
-                    },
-                  }}
-                >
-                  Message from Convenor
-                </Typography>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-              >
-                <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', mb: 3 }}>
-                  <Avatar
-                    src="/convenor-image.png"
-                    alt="Convenor"
-                  sx={{ 
-                      width: 100,
-                      height: 100,
-                      border: 3,
-                      borderColor: 'primary.main',
-                    }}
-                  />
-                  <Box>
-                    <Typography 
-                      variant="h6" 
-                      color="primary.main"
-                      sx={{ fontWeight: 600 }}
-                    >
-                  Dr. Jane Smith
-                </Typography>
-                    <Typography 
-                      variant="subtitle2" 
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                  Program Convenor
-                    </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                      }}
-                    >
-                      <School fontSize="small" />
-                      Professor, Department of Computer Science
-                    </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ 
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        mt: 0.5,
-                      }}
-                    >
-                      Ph.D Computer Science, IIT Delhi
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography 
-                  variant="body1" 
-                  paragraph
-                  sx={{ 
-                    fontSize: '1.1rem',
-                    lineHeight: 1.8,
-                    color: 'text.secondary',
-                    mb: 4,
-                  }}
-                >
-                "We believe in empowering students with the skills and knowledge they need to succeed in the ever-evolving tech industry. Our mission is to provide quality education that bridges the gap between academic learning and industry requirements."
-                </Typography>
-              </motion.div>
-            </Grid>
-          </Grid>
-        </Container>
-      </TeamSection>
-
         {/* Contact Section */}
         <Box sx={{ my: 4, textAlign: 'center' }}>
           <Typography variant="h4" gutterBottom>
